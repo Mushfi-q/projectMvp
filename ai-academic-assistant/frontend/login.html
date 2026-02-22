@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>AI Academic Assistant - Login</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+
+    <h2>Login</h2>
+
+    <form id="loginForm">
+        <input type="email" id="email" placeholder="Email" required><br><br>
+        <input type="password" id="password" placeholder="Password" required><br><br>
+        <button type="submit">Login</button>
+    </form>
+
+    <p id="error" style="color:red;"></p>
+
+    <script>
+        document.getElementById("loginForm").addEventListener("submit", async function (e) {
+            e.preventDefault();
+
+            const email = document.getElementById("email").value;
+            const password = document.getElementById("password").value;
+
+            const formData = new URLSearchParams();
+            formData.append("username", email);
+            formData.append("password", password);
+            formData.append("grant_type", "password");
+
+            const response = await fetch("http://127.0.0.1:8000/auth/login", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/x-www-form-urlencoded"
+                },
+                body: formData
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                // Adapt to our standardization format {"success": true, "data": {...}}
+                const token = data.data ? data.data.access_token : data.access_token;
+                localStorage.setItem("token", token);
+
+                const userResponse = await fetch("http://127.0.0.1:8000/auth/me", {
+                    headers: {
+                        "Authorization": "Bearer " + token
+                    }
+                });
+
+                const userData = await userResponse.json();
+
+                // Adapt to {"success": true, "data": {...}}
+                const userRole = userData.data ? userData.data.role : userData.role;
+
+                if (userRole === "student") {
+                    window.location.href = "student.html";
+                } else if (userRole === "faculty") {
+                    window.location.href = "faculty.html";
+                } else {
+                    alert("Unknown role");
+                }
+
+            } else {
+                document.getElementById("error").innerText = data.detail || "Invalid credentials";
+            }
+        });
+    </script>
+
+</body>
+
+</html>

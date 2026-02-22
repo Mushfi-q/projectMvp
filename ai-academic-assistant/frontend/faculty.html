@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Faculty Dashboard</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+
+    <h2>Faculty Dashboard</h2>
+
+    <button onclick="logout()">Logout</button>
+
+    <hr>
+
+    <h3>Create Assignment</h3>
+    <input type="number" id="subjectId" placeholder="Subject Offering ID"><br><br>
+    <input type="text" id="title" placeholder="Title"><br><br>
+    <input type="text" id="description" placeholder="Description"><br><br>
+    <input type="datetime-local" id="deadline"><br><br>
+    <button onclick="createAssignment()">Create</button>
+
+    <p id="assignmentMsg"></p>
+
+    <hr>
+
+    <h3>Upload Marks</h3>
+    <input type="number" id="markSubjectId" placeholder="Subject Offering ID"><br><br>
+    <input type="number" id="studentId" placeholder="Student ID"><br><br>
+    <input type="number" id="marksObtained" placeholder="Marks Obtained"><br><br>
+    <input type="number" id="maxMarks" placeholder="Max Marks"><br><br>
+    <button onclick="uploadMarks()">Upload</button>
+
+    <p id="marksMsg"></p>
+
+    <hr>
+
+    <h3>View Students</h3>
+    <input type="number" id="viewSubjectId" placeholder="Subject Offering ID"><br><br>
+    <button onclick="viewStudents()">Load Students</button>
+
+    <ul id="studentsList"></ul>
+
+    <script>
+        const API_BASE = "http://127.0.0.1:8000";
+        const token = localStorage.getItem("token");
+
+        if (!token) {
+            window.location.href = "login.html";
+        }
+
+        function logout() {
+            localStorage.removeItem("token");
+            window.location.href = "login.html";
+        }
+
+        async function createAssignment() {
+            const subjectId = parseInt(document.getElementById("subjectId").value);
+            const title = document.getElementById("title").value;
+            const description = document.getElementById("description").value;
+            const deadline = document.getElementById("deadline").value;
+
+            try {
+                const response = await fetch(`${API_BASE}/faculty/assignment`, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "Authorization": "Bearer " + token
+                    },
+                    body: JSON.stringify({
+                        subject_offering_id: subjectId,
+                        title: title,
+                        description: description,
+                        deadline: deadline
+                    })
+                });
+
+                const data = await response.json();
+                document.getElementById("assignmentMsg").innerText = response.ok ? (data.data || "Success") : (data.detail || "Error");
+            } catch (e) {
+                document.getElementById("assignmentMsg").innerText = "Network Error";
+            }
+        }
+
+        async function uploadMarks() {
+            const subjectId = parseInt(document.getElementById("markSubjectId").value);
+            const studentId = parseInt(document.getElementById("studentId").value);
+            const marksObtained = parseInt(document.getElementById("marksObtained").value);
+            const maxMarks = parseInt(document.getElementById("maxMarks").value);
+
+            try {
+                const response = await fetch(`${API_BASE}/faculty/marks`, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "Authorization": "Bearer " + token
+                    },
+                    body: JSON.stringify({
+                        subject_offering_id: subjectId,
+                        student_id: studentId,
+                        marks_obtained: marksObtained,
+                        max_marks: maxMarks
+                    })
+                });
+
+                const data = await response.json();
+                document.getElementById("marksMsg").innerText = response.ok ? (data.data || "Success") : (data.detail || "Error");
+            } catch (e) {
+                document.getElementById("marksMsg").innerText = "Network Error";
+            }
+        }
+
+        async function viewStudents() {
+            const subjectId = document.getElementById("viewSubjectId").value;
+            if (!subjectId) return;
+
+            try {
+                const response = await fetch(`${API_BASE}/faculty/students/${subjectId}`, {
+                    headers: {
+                        "Authorization": "Bearer " + token
+                    }
+                });
+
+                const data = await response.json();
+                const list = document.getElementById("studentsList");
+                list.innerHTML = "";
+
+                if (response.ok && data.data && Array.isArray(data.data)) {
+                    data.data.forEach(s => {
+                        const li = document.createElement("li");
+                        li.innerText = `Student ID: ${s.student_id} | Reg No: ${s.register_number}`;
+                        list.appendChild(li);
+                    });
+                } else {
+                    const li = document.createElement("li");
+                    li.innerText = data.detail || "Error fetching students";
+                    list.appendChild(li);
+                }
+            } catch (e) {
+                console.error("Network Error", e);
+            }
+        }
+    </script>
+
+</body>
+
+</html>
