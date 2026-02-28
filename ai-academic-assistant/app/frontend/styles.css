@@ -4,7 +4,8 @@ body {
     margin-top: 100px;
 }
 
-input, button {
+input,
+button {
     padding: 8px;
     width: 200px;
 }

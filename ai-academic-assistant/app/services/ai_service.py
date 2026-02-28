@@ -1,4 +1,7 @@
-import ollama
+from groq import Groq
+from app.config import GROQ_API_KEY
+
+client = Groq(api_key=GROQ_API_KEY)
 from app.services.rag_service import retrieve_chunks
 from datetime import datetime, timedelta
 from app.models.assignment import Assignment, InternalMark
@@ -80,8 +83,13 @@ def generate_subject_response(subject_offering_id, query, student_id=None):
         "weak", "performance", "marks", "score"
     ])
 
+    print("QUERY:", query)
+    print("SUBJECT ID:", subject_offering_id)
+
     # Retrieve study material
     retrieved_chunks = retrieve_chunks(subject_offering_id, query)
+
+    print("RETRIEVED CHUNKS:", retrieved_chunks)
 
     # Get structured data via helpers
     deadline_info = get_deadline_data(db, subject_offering_id)
@@ -127,15 +135,14 @@ Answer clearly.
 """
 
     try:
-        response = ollama.chat(
-            model="phi3:mini",
+        response = client.chat.completions.create(
+            model="llama-3.1-8b-instant",  # Updated to a supported Groq model
             messages=[{"role": "user", "content": prompt}],
-            options={"num_predict": 300, "num_ctx": 2048}
+            temperature=0.3
         )
-        content = response["message"]["content"]
+        db.close()
+        return response.choices[0].message.content
     except Exception as e:
-        logger.error(f"Ollama chat generation failed: {str(e)}")
-        content = "AI service temporarily unavailable."
-
-    db.close()
-    return content
+        logger.error(f"Groq chat generation failed: {str(e)}")
+        db.close()
+        return "AI service temporarily unavailable."

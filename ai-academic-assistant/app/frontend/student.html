@@ -3,7 +3,7 @@
 
 <head>
     <title>Student Dashboard</title>
-    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="/static/styles.css">
 </head>
 
 <body>
@@ -35,16 +35,16 @@
     <p id="chatResponse"></p>
 
     <script>
-        const API_BASE = "http://127.0.0.1:8000";
+        const API_BASE = "";
         const token = localStorage.getItem("token");
 
         if (!token) {
-            window.location.href = "login.html";
+            window.location.href = "/";
         }
 
         function logout() {
             localStorage.removeItem("token");
-            window.location.href = "login.html";
+            window.location.href = "/";
         }
 
         // Fetch Assignments
