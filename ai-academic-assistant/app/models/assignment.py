@@ -57,20 +57,3 @@ class DocumentChunk(Base):
     embedding_vector = Column(Text)  # store serialized vector
     chunk_index = Column(Integer)
 
-
-class ChatSession(Base):
-    __tablename__ = "chat_sessions"
-
-    id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id"))
-    started_at = Column(DateTime(timezone=True), server_default=func.now())
-
-
-class ChatMessage(Base):
-    __tablename__ = "chat_messages"
-
-    id = Column(Integer, primary_key=True, index=True)
-    session_id = Column(Integer, ForeignKey("chat_sessions.id"))
-    role = Column(String)  # User / Assistant
-    message_text = Column(Text)
-    timestamp = Column(DateTime(timezone=True), server_default=func.now())

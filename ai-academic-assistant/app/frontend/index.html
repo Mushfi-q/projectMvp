@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CampusAI Assistant</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/css/chatgpt.css">
+</head>
+
+<body class="dark-mode">
+
+    <div class="app-layout">
+        <!-- LEFT SIDEBAR -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <div class="brand-title"
+                    style="font-weight:600;font-size:15px;color:var(--text-primary);padding:4px 0;">CampusAI</div>
+            </div>
+
+            <div class="sidebar-nav">
+                <span class="nav-label">Subject Chats</span>
+                <div id="subjectChatList">
+                    <div style="padding:8px 16px;font-size:12px;color:var(--text-secondary);">Loading subjects...</div>
+                </div>
+            </div>
+
+            <div class="sidebar-nav">
+                <span class="nav-label">Academic Portal</span>
+                <button class="nav-item" onclick="switchView('dashboard')">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="3" y="3" width="7" height="7"></rect>
+                        <rect x="14" y="3" width="7" height="7"></rect>
+                        <rect x="14" y="14" width="7" height="7"></rect>
+                        <rect x="3" y="14" width="7" height="7"></rect>
+                    </svg>
+                    Dashboard Analytics
+                </button>
+                <button class="nav-item" onclick="switchView('subjects')">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+                        <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+                    </svg>
+                    My Subjects
+                </button>
+                <button class="nav-item" onclick="switchView('assignments')">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                        <polyline points="14 2 14 8 20 8"></polyline>
+                        <line x1="16" y1="13" x2="8" y2="13"></line>
+                        <line x1="16" y1="17" x2="8" y2="17"></line>
+                        <polyline points="10 9 9 9 8 9"></polyline>
+                    </svg>
+                    Assignments
+                </button>
+                <button class="nav-item" onclick="switchView('marks')">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+                    </svg>
+                    Grades & Attendance
+                </button>
+            </div>
+
+            <div class="sidebar-footer">
+                <button class="nav-item danger" onclick="logout()">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                        <polyline points="16 17 21 12 16 7"></polyline>
+                        <line x1="21" y1="12" x2="9" y2="12"></line>
+                    </svg>
+                    Log Out
+                </button>
+            </div>
+        </aside>
+
+        <!-- MAIN CANVAS -->
+        <main class="main-content">
+
+            <!-- 1. CHAT VIEW (per-subject) -->
+            <div id="view-chat" class="view-panel active">
+                <div class="chat-container">
+                    <div class="chat-history" id="chatHistory">
+                        <!-- Welcome prompt -->
+                        <div class="message assistant">
+                            <div class="avatar">
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2">
+                                    <path
+                                        d="M12 2a2 2 0 0 1 2 2c0 1.1-.9 2-2 2s-2-.9-2-2 .9-2 2-2zm0 15c-3.31 0-6-2.69-6-6s2.69-6 6-6 6 2.69 6 6-2.69 6-6 6z">
+                                    </path>
+                                    <path d="M12 22A10 10 0 1 0 12 2a10 10 0 0 0 0 20z"></path>
+                                </svg>
+                            </div>
+                            <div class="message-content">
+                                👈 Select a <strong>subject</strong> from the sidebar to start a doubt-solving chat.
+                                Each subject has its own AI powered by that subject's syllabus modules.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="chat-input-wrapper">
+                    <form id="chatForm" class="chat-input-box">
+                        <textarea id="chatInput" placeholder="Select a subject first..." rows="1" disabled></textarea>
+                        <button type="submit" id="sendBtn" disabled>
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2">
+                                <line x1="22" y1="2" x2="11" y2="13"></line>
+                                <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                            </svg>
+                        </button>
+                    </form>
+                    <div class="chat-disclaimer">CampusAI can make mistakes. Please verify critical syllabus deadlines.
+                    </div>
+                </div>
+            </div>
+
+            <!-- 2. DASHBOARD ANALYTICS VIEW -->
+            <div id="view-dashboard" class="view-panel hidden scrollable-pane">
+                <div class="pane-header">
+                    <h2>Academic Performance Intelligence</h2>
+                    <p>Real-time synthesis of your risk profile and trajectory.</p>
+                </div>
+                <div class="analytics-grid" id="analyticsContainer">
+                    <div class="loader">Loading intelligence engines...</div>
+                </div>
+            </div>
+
+            <!-- 3. SUBJECTS VIEW -->
+            <div id="view-subjects" class="view-panel hidden scrollable-pane">
+                <div class="pane-header">
+                    <h2>My Enrolled Subjects</h2>
+                </div>
+                <div class="data-table-container" id="subjectsContainer">
+                    <div class="loader">Loading subjects...</div>
+                </div>
+            </div>
+
+            <!-- 4. ASSIGNMENTS VIEW -->
+            <div id="view-assignments" class="view-panel hidden scrollable-pane">
+                <div class="pane-header">
+                    <h2>Assignments & Dropbox</h2>
+                    <p>Track pending deadlines and securely upload submissions.</p>
+                </div>
+                <div class="data-table-container">
+                    <table class="modern-table">
+                        <thead>
+                            <tr>
+                                <th>Assignment Title</th>
+                                <th>Deadline</th>
+                                <th>Target Subject ID</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="assignmentsList">
+                            <!-- Populated dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Hidden Submission Form injected on action -->
+                <div id="submissionModal" class="modal hidden">
+                    <div class="modal-content">
+                        <h3>Submit Assignment</h3>
+                        <p id="submittingAssignmentTitle" style="color:var(--text-secondary); margin-bottom: 20px;"></p>
+                        <form id="submissionForm">
+                            <input type="hidden" id="submissionAssignmentId">
+                            <input type="file" id="submissionFile" accept=".pdf,.doc,.docx,.zip" required
+                                style="margin-bottom: 15px;">
+                            <div style="display: flex; gap: 10px; justify-content: flex-end;">
+                                <button type="button" class="btn secondary"
+                                    onclick="closeSubmissionModal()">Cancel</button>
+                                <button type="submit" class="btn primary" id="uploadFileBtn">Upload & Submit</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 5. MARKS & ATTENDANCE VIEW -->
+            <div id="view-marks" class="view-panel hidden scrollable-pane">
+                <div class="pane-header">
+                    <h2>Grades & Attendance Log</h2>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                    <!-- Attendance -->
+                    <div class="data-table-container">
+                        <h3 style="margin-bottom: 15px; font-size: 16px;">Attendance Metrics</h3>
+                        <table class="modern-table">
+                            <thead>
+                                <tr>
+                                    <th>Subject</th>
+                                    <th>Percentage</th>
+                                </tr>
+                            </thead>
+                            <tbody id="attendanceList"></tbody>
+                        </table>
+                    </div>
+
+                    <!-- Marks -->
+                    <div class="data-table-container">
+                        <h3 style="margin-bottom: 15px; font-size: 16px;">Internal Marks</h3>
+                        <table class="modern-table">
+                            <thead>
+                                <tr>
+                                    <th>Subject Offering ID</th>
+                                    <th>Score</th>
+                                    <th>Max</th>
+                                </tr>
+                            </thead>
+                            <tbody id="marksList"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+    <!-- Scripts -->
+    <script src="/static/js/student.js"></script>
+</body>
+
+</html>

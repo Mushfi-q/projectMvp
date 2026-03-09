@@ -1,75 +1,135 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 
 <head>
-    <title>AI Academic Assistant - Login</title>
-    <link rel="stylesheet" href="/static/styles.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CampusAI - Authentication</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/css/styles.css">
 </head>
 
 <body>
 
-    <h2>Login</h2>
+    <div class="auth-container">
 
-    <form id="loginForm">
-        <input type="email" id="email" placeholder="Email" required><br><br>
-        <input type="password" id="password" placeholder="Password" required><br><br>
-        <button type="submit">Login</button>
-    </form>
+        <!-- LOGIN VIEW -->
+        <div id="loginView">
+            <div class="auth-header">
+                <h1>CampusAI</h1>
+                <p>Sign in to access your intelligence dashboard</p>
+            </div>
 
-    <p id="error" style="color:red;"></p>
+            <div id="loginAlert" class="alert"></div>
 
-    <script>
-        document.getElementById("loginForm").addEventListener("submit", async function (e) {
-            e.preventDefault();
+            <form id="loginForm">
+                <div class="form-group">
+                    <label for="loginEmail">Email Address</label>
+                    <input type="email" id="loginEmail" placeholder="student@campus.edu" required>
+                </div>
+                <div class="form-group">
+                    <label for="loginPassword">Password</label>
+                    <input type="password" id="loginPassword" placeholder="••••••••" required>
+                </div>
+                <button type="submit" class="btn" id="loginBtn">Secure Login</button>
+            </form>
 
-            const email = document.getElementById("email").value;
-            const password = document.getElementById("password").value;
+            <div class="auth-switch">
+                Don't have an account? <span id="showRegister">Create Account</span>
+            </div>
+        </div>
 
-            const formData = new URLSearchParams();
-            formData.append("username", email);
-            formData.append("password", password);
-            formData.append("grant_type", "password");
+        <!-- REGISTER VIEW -->
+        <div id="registerView" class="hidden">
+            <div class="auth-header">
+                <h1>Create Account</h1>
+                <p>Join CampusAI to accelerate your learning</p>
+            </div>
 
-            const response = await fetch("/auth/login", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/x-www-form-urlencoded"
-                },
-                body: formData
-            });
+            <div id="registerAlert" class="alert"></div>
 
-            const data = await response.json();
+            <form id="registerForm">
+                <div class="form-group">
+                    <label for="regName">Full Name</label>
+                    <input type="text" id="regName" placeholder="Jon Doe" required>
+                </div>
+                <div class="form-group">
+                    <label for="regRole">I am a</label>
+                    <select id="regRole" required>
+                        <option value="student">Student</option>
+                        <option value="faculty">Faculty</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="regEmail">Email Address</label>
+                    <input type="email" id="regEmail" placeholder="user@campus.edu" required>
+                </div>
 
-            if (response.ok) {
-                // Adapt to our standardization format {"success": true, "data": {...}}
-                const token = data.data ? data.data.access_token : data.access_token;
-                localStorage.setItem("token", token);
+                <div class="form-group">
+                    <label for="regDepartment">Department</label>
+                    <select id="regDepartment" required>
+                        <option value="">Loading...</option>
+                    </select>
+                </div>
 
-                const userResponse = await fetch("/auth/me", {
-                    headers: {
-                        "Authorization": "Bearer " + token
-                    }
-                });
+                <!-- Student-only fields -->
+                <div id="studentFields">
+                    <div style="display: flex; gap: 15px;">
+                        <div class="form-group" style="flex: 1;">
+                            <label for="regBatch">Batch</label>
+                            <select id="regBatch" required>
+                                <option value="">Select Dept First</option>
+                            </select>
+                        </div>
+                        <div class="form-group" style="flex: 1;">
+                            <label for="regSemester">Semester</label>
+                            <select id="regSemester" required>
+                                <option value="">Select</option>
+                                <option value="1">Semester 1</option>
+                                <option value="2">Semester 2</option>
+                                <option value="3">Semester 3</option>
+                                <option value="4">Semester 4</option>
+                                <option value="5">Semester 5</option>
+                                <option value="6">Semester 6</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
 
-                const userData = await userResponse.json();
+                <!-- Faculty-only fields -->
+                <div id="facultyFields" class="hidden">
+                    <div class="form-group">
+                        <label for="regDesignation">Designation</label>
+                        <select id="regDesignation">
+                            <option value="Assistant Professor">Assistant Professor</option>
+                            <option value="Associate Professor">Associate Professor</option>
+                            <option value="Professor">Professor</option>
+                            <option value="HOD">HOD</option>
+                            <option value="Lecturer">Lecturer</option>
+                        </select>
+                    </div>
+                </div>
 
-                // Adapt to {"success": true, "data": {...}}
-                const userRole = userData.data ? userData.data.role : userData.role;
+                <div class="form-group">
+                    <label for="regPassword">Password</label>
+                    <input type="password" id="regPassword" placeholder="••••••••" required>
+                </div>
+                <div class="form-group">
+                    <label for="regConfirmPassword">Confirm Password</label>
+                    <input type="password" id="regConfirmPassword" placeholder="••••••••" required>
+                </div>
+                <button type="submit" class="btn" id="registerBtn">Create Account</button>
+            </form>
 
-                if (userRole === "student") {
-                    window.location.href = "/student";
-                } else if (userRole === "faculty") {
-                    window.location.href = "/faculty";
-                } else {
-                    alert("Unknown role");
-                }
+            <div class="auth-switch">
+                Already have an account? <span id="showLogin">Sign In</span>
+            </div>
+        </div>
 
-            } else {
-                document.getElementById("error").innerText = data.detail || "Invalid credentials";
-            }
-        });
-    </script>
+    </div>
 
+    <!-- Scripts -->
+    <script src="/static/js/auth.js"></script>
 </body>
 
 </html>

@@ -1,0 +1,553 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CampusAI — Admin Control Panel</title>
+    <link rel="stylesheet" href="/static/css/admin.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+
+<body>
+    <div class="app-layout">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <div class="brand">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <path d="M12 16v-4M12 8h.01"></path>
+                    </svg>
+                    <span>CampusAI Admin</span>
+                </div>
+            </div>
+
+            <nav class="sidebar-nav">
+                <span class="nav-label">Academic Setup</span>
+                <button class="nav-item active" onclick="switchPanel('departments')">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"></path>
+                    </svg>
+                    Departments
+                </button>
+                <button class="nav-item" onclick="switchPanel('batches')">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                        <line x1="3" y1="9" x2="21" y2="9"></line>
+                    </svg>
+                    Batches
+                </button>
+                <button class="nav-item" onclick="switchPanel('semesters')">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="6 9 6 2 18 2 18 9"></polyline>
+                        <path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"></path>
+                        <rect x="6" y="14" width="12" height="8"></rect>
+                    </svg>
+                    Semesters
+                </button>
+                <button class="nav-item" onclick="switchPanel('subjects')">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M4 19.5A2.5 2.5 0 016.5 17H20"></path>
+                        <path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"></path>
+                    </svg>
+                    Subjects
+                </button>
+
+                <span class="nav-label">User Management</span>
+                <button class="nav-item" onclick="switchPanel('faculty')">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"></path>
+                        <circle cx="9" cy="7" r="4"></circle>
+                        <path d="M23 21v-2a4 4 0 00-3-3.87"></path>
+                        <path d="M16 3.13a4 4 0 010 7.75"></path>
+                    </svg>
+                    Faculty
+                </button>
+                <button class="nav-item" onclick="switchPanel('students')">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"></path>
+                        <circle cx="12" cy="7" r="4"></circle>
+                    </svg>
+                    Students
+                </button>
+                <button class="nav-item" onclick="switchPanel('enrollments')">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M16 4h2a2 2 0 012 2v14a2 2 0 01-2 2H6a2 2 0 01-2-2V6a2 2 0 012-2h2"></path>
+                        <rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect>
+                    </svg>
+                    Enrollments
+                </button>
+
+                <span class="nav-label">Operations</span>
+                <button class="nav-item" onclick="switchPanel('offerings')">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+                    </svg>
+                    Map Subjects
+                </button>
+                <button class="nav-item" onclick="switchPanel('pdf')">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"></path>
+                        <polyline points="14 2 14 8 20 8"></polyline>
+                    </svg>
+                    Upload PDF
+                </button>
+                <button class="nav-item" onclick="switchPanel('promote')">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="17 1 21 5 17 9"></polyline>
+                        <path d="M3 11V9a4 4 0 014-4h14"></path>
+                        <polyline points="7 23 3 19 7 15"></polyline>
+                        <path d="M21 13v2a4 4 0 01-4 4H3"></path>
+                    </svg>
+                    Promote Batch
+                </button>
+            </nav>
+
+            <div class="sidebar-footer">
+                <button class="nav-item danger" onclick="logout()">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"></path>
+                        <polyline points="16 17 21 12 16 7"></polyline>
+                        <line x1="21" y1="12" x2="9" y2="12"></line>
+                    </svg>
+                    Logout
+                </button>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+
+            <!-- Department Panel -->
+            <div id="panel-departments" class="panel active">
+                <div class="panel-header">
+                    <h2>Department Management</h2>
+                    <p>Create and manage academic departments.</p>
+                </div>
+                <div class="form-card">
+                    <h3>Create New Department</h3>
+                    <form id="deptForm">
+                        <div class="form-group">
+                            <label>Department Name</label>
+                            <input type="text" id="deptName" placeholder="e.g. Computer Science & Engineering" required>
+                        </div>
+                        <button type="submit" class="btn primary">Create Department</button>
+                    </form>
+                    <div id="deptAlert" class="alert hidden"></div>
+                </div>
+                <div class="data-table-section">
+                    <h3>Existing Departments</h3>
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Name</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="deptTableBody">
+                            <tr>
+                                <td colspan="3">Loading...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Batch Panel -->
+            <div id="panel-batches" class="panel hidden">
+                <div class="panel-header">
+                    <h2>Batch Management</h2>
+                    <p>Create Batch cohorts assigned to specific departments.</p>
+                </div>
+                <div class="form-card">
+                    <h3>Create New Batch</h3>
+                    <form id="batchForm">
+                        <div class="form-group">
+                            <label>Department</label>
+                            <select id="batchDeptId" required>
+                                <option value="">Loading...</option>
+                            </select>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Start Year</label>
+                                <input type="number" id="batchStart" placeholder="2024" required>
+                            </div>
+                            <div class="form-group">
+                                <label>End Year</label>
+                                <input type="number" id="batchEnd" placeholder="2028" required>
+                            </div>
+                        </div>
+                        <button type="submit" class="btn primary">Create Batch</button>
+                    </form>
+                    <div id="batchAlert" class="alert hidden"></div>
+                </div>
+                <div class="data-table-section">
+                    <h3>Existing Batches</h3>
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Department</th>
+                                <th>Start Year</th>
+                                <th>End Year</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="batchTableBody">
+                            <tr>
+                                <td colspan="5">Loading...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Semester Panel -->
+            <div id="panel-semesters" class="panel hidden">
+                <div class="panel-header">
+                    <h2>Semester Management</h2>
+                    <p>Create Semesters under specific Batches.</p>
+                </div>
+                <div class="form-card">
+                    <h3>Create New Semester</h3>
+                    <form id="semForm">
+                        <div class="form-group">
+                            <label>Batch ID</label>
+                            <input type="number" id="semBatchId" placeholder="e.g. 1" required>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Semester Number</label>
+                                <input type="number" id="semNumber" min="1" max="8" placeholder="1-6" required>
+                            </div>
+                            <div class="form-group">
+                                <label>Academic Year</label>
+                                <input type="text" id="semYear" placeholder="2024-2025" required>
+                            </div>
+                        </div>
+                        <button type="submit" class="btn primary">Create Semester</button>
+                    </form>
+                    <div id="semAlert" class="alert hidden"></div>
+                </div>
+                <div class="data-table-section">
+                    <h3>Existing Semesters</h3>
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Batch</th>
+                                <th>Semester</th>
+                                <th>Academic Year</th>
+                                <th>Active</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="semTableBody">
+                            <tr>
+                                <td colspan="6">Loading...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Faculty Panel -->
+            <div id="panel-faculty" class="panel hidden">
+                <div class="panel-header">
+                    <h2>Faculty Management</h2>
+                    <p>Link a registered User to a Faculty profile.</p>
+                </div>
+                <div class="form-card">
+                    <h3>Create Faculty Profile</h3>
+                    <form id="facultyForm">
+                        <div class="form-group">
+                            <label>User ID (registered Faculty account)</label>
+                            <input type="number" id="facUserId" placeholder="e.g. 5" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Department</label>
+                            <select id="facDeptId" required>
+                                <option value="">Loading...</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Designation</label>
+                            <input type="text" id="facDesignation" placeholder="e.g. Assistant Professor" required>
+                        </div>
+                        <button type="submit" class="btn primary">Link Faculty Profile</button>
+                    </form>
+                    <div id="facAlert" class="alert hidden"></div>
+                </div>
+                <div class="data-table-section">
+                    <h3>Existing Faculty</h3>
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Name</th>
+                                <th>Email</th>
+                                <th>Dept</th>
+                                <th>Designation</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="facTableBody">
+                            <tr>
+                                <td colspan="5">Loading...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Students Panel -->
+            <div id="panel-students" class="panel hidden">
+                <div class="panel-header">
+                    <h2>Student Directory</h2>
+                    <p>View all registered students and their academic mappings.</p>
+                </div>
+                <div class="data-table-section">
+                    <h3>All Students</h3>
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Name</th>
+                                <th>Email</th>
+                                <th>Reg No.</th>
+                                <th>Batch</th>
+                                <th>Semester</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="studentTableBody">
+                            <tr>
+                                <td colspan="6">Loading...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Enrollments Panel -->
+            <div id="panel-enrollments" class="panel hidden">
+                <div class="panel-header">
+                    <h2>Enrollment Records</h2>
+                    <p>View and manage all student-to-subject enrollments.</p>
+                </div>
+                <div class="data-table-section">
+                    <h3>All Enrollments</h3>
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Student</th>
+                                <th>Subject</th>
+                                <th>Code</th>
+                                <th>Offering ID</th>
+                                <th>Date</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="enrollTableBody">
+                            <tr>
+                                <td colspan="7">Loading...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Subjects Panel -->
+            <div id="panel-subjects" class="panel hidden">
+                <div class="panel-header">
+                    <h2>Subject Management</h2>
+                    <p>Create Subjects and assign them to Semesters via Subject Offerings.</p>
+                </div>
+                <div class="form-card">
+                    <h3>Create New Subject</h3>
+                    <form id="subjectForm">
+                        <div class="form-group">
+                            <label>Subject Name</label>
+                            <input type="text" id="subjName" placeholder="e.g. Data Structures" required>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Subject Code</label>
+                                <input type="text" id="subjCode" placeholder="e.g. CS201" required>
+                            </div>
+                            <div class="form-group">
+                                <label>Department</label>
+                                <select id="subjDeptId" required>
+                                    <option value="">Loading...</option>
+                                </select>
+                            </div>
+                        </div>
+                        <button type="submit" class="btn primary">Create Subject</button>
+                    </form>
+                    <div id="subjAlert" class="alert hidden"></div>
+                </div>
+
+                <div class="data-table-section">
+                    <h3>All Subjects</h3>
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Code</th>
+                                <th>Name</th>
+                                <th>Department</th>
+                            </tr>
+                        </thead>
+                        <tbody id="subjTableBody">
+                            <tr>
+                                <td colspan="4">Loading...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+            </div>
+
+            <!-- Map Subjects Panel (Subject Offerings) -->
+            <div id="panel-offerings" class="panel hidden">
+                <div class="panel-header">
+                    <h2>Map Subjects to Faculty</h2>
+                    <p>Create subject offerings by assigning a faculty member to a subject for a specific semester.</p>
+                </div>
+
+                <div class="form-card">
+                    <h3>Create Subject Offering</h3>
+                    <form id="subjectOfferingForm">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Subject</label>
+                                <select id="soSubjectId" required>
+                                    <option value="">Loading...</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Semester</label>
+                                <select id="soSemesterId" required>
+                                    <option value="">Loading...</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Faculty</label>
+                                <select id="soFacultyId" required>
+                                    <option value="">Loading...</option>
+                                </select>
+                            </div>
+                        </div>
+                        <button type="submit" class="btn primary">Map Faculty to Subject</button>
+                    </form>
+                    <div id="soAlert" class="alert hidden"></div>
+                </div>
+
+                <div class="data-table-section mt-4">
+                    <h3>All Subject Mappings</h3>
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Offering ID</th>
+                                <th>Subject Code</th>
+                                <th>Subject Name</th>
+                                <th>Semester</th>
+                                <th>Faculty Name</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="soTableBody">
+                            <tr>
+                                <td colspan="5">Loading...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Upload PDF Panel -->
+            <div id="panel-pdf" class="panel hidden">
+                <div class="panel-header">
+                    <h2>PDF Upload & Indexing</h2>
+                    <p>Upload Module PDFs for subjects and auto-index them with FAISS for AI retrieval. Each subject has
+                        4 modules.</p>
+                </div>
+                <div class="form-card">
+                    <h3>Upload Module PDF</h3>
+                    <form id="pdfForm">
+                        <div style="display: flex; gap: 15px;">
+                            <div class="form-group" style="flex: 2;">
+                                <label>Subject</label>
+                                <select id="pdfSubjectId" required>
+                                    <option value="">Loading subjects...</option>
+                                </select>
+                            </div>
+                            <div class="form-group" style="flex: 1;">
+                                <label>Module</label>
+                                <select id="pdfModuleNumber" required>
+                                    <option value="1">Module 1</option>
+                                    <option value="2">Module 2</option>
+                                    <option value="3">Module 3</option>
+                                    <option value="4">Module 4</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>PDF File</label>
+                            <input type="file" id="pdfFile" accept=".pdf" required>
+                        </div>
+                        <button type="submit" class="btn primary" id="pdfUploadBtn">Upload & Index</button>
+                    </form>
+                    <div id="pdfAlert" class="alert hidden"></div>
+                </div>
+                <div class="data-table-section">
+                    <h3>Uploaded Documents</h3>
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Title</th>
+                                <th>Type</th>
+                                <th>Uploaded By</th>
+                                <th>Date</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="docTableBody">
+                            <tr>
+                                <td colspan="6">Loading...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Promote Batch Panel -->
+            <div id="panel-promote" class="panel hidden">
+                <div class="panel-header">
+                    <h2>Batch Promotion</h2>
+                    <p>Promote all students in a Batch to the next Semester, archiving their current Performance.</p>
+                </div>
+                <div class="form-card">
+                    <h3>Promote a Batch</h3>
+                    <form id="promoteForm">
+                        <div class="form-group">
+                            <label>Batch ID</label>
+                            <input type="number" id="promoteBatchId" placeholder="e.g. 1" required>
+                        </div>
+                        <button type="submit" class="btn promote">Promote to Next Semester</button>
+                    </form>
+                    <div id="promoteAlert" class="alert hidden"></div>
+                </div>
+            </div>
+
+        </main>
+    </div>
+    <script src="/static/js/admin.js?v=4"></script>
+</body>
+
+</html>

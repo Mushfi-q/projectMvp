@@ -39,6 +39,23 @@ class Student(Base):
     section = Column(String)
     current_semester_id = Column(Integer, ForeignKey("semesters.id"))
 
+    enrollments = relationship("Enrollment", back_populates="student")
+    semester_history = relationship("StudentSemesterHistory", back_populates="student")
+    reminders = relationship("Reminder", back_populates="student")
+
+class StudentSemesterHistory(Base):
+    __tablename__ = "student_semester_history"
+
+    id = Column(Integer, primary_key=True, index=True)
+    student_id = Column(Integer, ForeignKey("students.id"), nullable=False)
+    semester_id = Column(Integer, ForeignKey("semesters.id"), nullable=False)
+    average_attendance = Column(Integer, nullable=True) # %
+    average_marks = Column(Integer, nullable=True) # %
+    total_missed_assignments = Column(Integer, default=0)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    student = relationship("Student", back_populates="semester_history")
+
 
 class Faculty(Base):
     __tablename__ = "faculties"
@@ -66,11 +83,17 @@ class SubjectOffering(Base):
     semester_id = Column(Integer, ForeignKey("semesters.id"))
     faculty_id = Column(Integer, ForeignKey("faculties.id"))
 
+    subject = relationship("Subject")
+    enrollments = relationship("Enrollment", back_populates="subject_offering")
 
 class Enrollment(Base):
     __tablename__ = "enrollments"
 
     id = Column(Integer, primary_key=True, index=True)
-    student_id = Column(Integer, ForeignKey("students.id"))
-    subject_offering_id = Column(Integer, ForeignKey("subject_offerings.id"))
+    student_id = Column(Integer, ForeignKey("students.id"), nullable=False)
+    subject_offering_id = Column(Integer, ForeignKey("subject_offerings.id"), nullable=False)
     enrollment_date = Column(DateTime(timezone=True), server_default=func.now())
+
+    student = relationship("Student", back_populates="enrollments")
+    subject_offering = relationship("SubjectOffering", back_populates="enrollments")
+    attendance_records = relationship("Attendance", back_populates="enrollment")

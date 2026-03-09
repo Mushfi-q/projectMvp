@@ -1,148 +1,358 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 
 <head>
-    <title>Faculty Dashboard</title>
-    <link rel="stylesheet" href="/static/styles.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CampusAI — Faculty Portal</title>
+    <link rel="stylesheet" href="/static/css/faculty.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 </head>
 
 <body>
+    <div class="app-layout">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <div class="brand">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <path d="M12 16v-4M12 8h.01"></path>
+                    </svg>
+                    <span>Faculty Portal</span>
+                </div>
+            </div>
 
-    <h2>Faculty Dashboard</h2>
+            <nav class="sidebar-nav">
+                <span class="nav-label">Course Management</span>
+                <button class="nav-item active" onclick="switchPanel('offerings')">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M4 19.5A2.5 2.5 0 016.5 17H20"></path>
+                        <path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"></path>
+                    </svg>
+                    My Subjects
+                </button>
+                <button class="nav-item" onclick="switchPanel('assignments')">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"></path>
+                        <polyline points="14 2 14 8 20 8"></polyline>
+                    </svg>
+                    Assignments
+                </button>
+                <button class="nav-item" onclick="switchPanel('marks')">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M12 20v-6M6 20V10M18 20V4"></path>
+                    </svg>
+                    Upload Marks
+                </button>
 
-    <button onclick="logout()">Logout</button>
+                <span class="nav-label">Class Operations</span>
+                <button class="nav-item" onclick="switchPanel('attendance')">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="9 11 12 14 22 4"></polyline>
+                        <path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"></path>
+                    </svg>
+                    Attendance
+                </button>
+                <button class="nav-item" onclick="switchPanel('students')">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"></path>
+                        <circle cx="9" cy="7" r="4"></circle>
+                        <path d="M23 21v-2a4 4 0 00-3-3.87"></path>
+                        <path d="M16 3.13a4 4 0 010 7.75"></path>
+                    </svg>
+                    Student List
+                </button>
+                <button class="nav-item" onclick="switchPanel('analytics')">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <polyline points="12 6 12 12 16 14"></polyline>
+                    </svg>
+                    Class Analytics
+                </button>
+            </nav>
 
-    <hr>
+            <div class="sidebar-footer">
+                <button class="nav-item danger" onclick="logout()">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"></path>
+                        <polyline points="16 17 21 12 16 7"></polyline>
+                        <line x1="21" y1="12" x2="9" y2="12"></line>
+                    </svg>
+                    Logout
+                </button>
+            </div>
+        </aside>
 
-    <h3>Create Assignment</h3>
-    <input type="number" id="subjectId" placeholder="Subject Offering ID"><br><br>
-    <input type="text" id="title" placeholder="Title"><br><br>
-    <input type="text" id="description" placeholder="Description"><br><br>
-    <input type="datetime-local" id="deadline"><br><br>
-    <button onclick="createAssignment()">Create</button>
+        <!-- Main Content -->
+        <main class="main-content">
 
-    <p id="assignmentMsg"></p>
+            <!-- Subject Offerings Panel -->
+            <div id="panel-offerings" class="panel active">
+                <div class="panel-header">
+                    <h2>My Subjects</h2>
+                    <p>View the subjects you are mapped to for the current semester.</p>
+                </div>
+                <div class="data-table-section">
+                    <h3>My Mapped Subjects</h3>
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Offering ID</th>
+                                <th>Subject Code</th>
+                                <th>Subject Name</th>
+                                <th>Semester ID</th>
+                            </tr>
+                        </thead>
+                        <tbody id="mySubjectsTableBody">
+                            <tr>
+                                <td colspan="4">Loading...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div id="subjectsAlert" class="alert hidden"></div>
+            </div>
 
-    <hr>
+            <!-- Assignments Panel -->
+            <div id="panel-assignments" class="panel hidden">
+                <div class="panel-header">
+                    <h2>Assignments</h2>
+                    <p>Create new assignments for your enrolled subjects.</p>
+                </div>
+                <div class="form-card">
+                    <h3>Create Assignment</h3>
+                    <form id="assignmentForm">
+                        <div class="form-group row">
+                            <div class="col">
+                                <label>Subject</label>
+                                <select id="assignSubject" class="my-subjects-dropdown" required>
+                                    <option value="">Select a subject...</option>
+                                </select>
+                            </div>
+                            <div class="col">
+                                <label>Deadline</label>
+                                <input type="datetime-local" id="assignDeadline" required>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>Title</label>
+                            <input type="text" id="assignTitle" placeholder="e.g. Unit 1 Quiz" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Description / Instructions</label>
+                            <textarea id="assignDesc" rows="3" placeholder="Assignment details..." required></textarea>
+                        </div>
+                        <button type="submit" class="btn primary">Post Assignment</button>
+                    </form>
+                    <div id="assignmentAlert" class="alert hidden"></div>
+                </div>
 
-    <h3>Upload Marks</h3>
-    <input type="number" id="markSubjectId" placeholder="Subject Offering ID"><br><br>
-    <input type="number" id="studentId" placeholder="Student ID"><br><br>
-    <input type="number" id="marksObtained" placeholder="Marks Obtained"><br><br>
-    <input type="number" id="maxMarks" placeholder="Max Marks"><br><br>
-    <button onclick="uploadMarks()">Upload</button>
+                <div class="data-table-section" style="margin-top: 2rem;">
+                    <h3>All Created Assignments</h3>
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Assignment ID</th>
+                                <th>Title</th>
+                                <th>Subject Code</th>
+                                <th>Sem</th>
+                                <th>Deadline</th>
+                            </tr>
+                        </thead>
+                        <tbody id="assignmentsTableBody">
+                            <tr>
+                                <td colspan="5">Loading...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
 
-    <p id="marksMsg"></p>
+            <!-- Marks Panel -->
+            <div id="panel-marks" class="panel hidden">
+                <div class="panel-header">
+                    <h2>Upload Marks</h2>
+                    <p>Record internal exam or assignment scores for students.</p>
+                </div>
+                <div class="form-card">
+                    <h3>Upload Internal Marks</h3>
+                    <form id="marksForm">
+                        <div class="form-group row">
+                            <div class="col">
+                                <label>Subject</label>
+                                <select id="marksSubject" class="my-subjects-dropdown"
+                                    onchange="loadStudentsForDropdown(this.value, 'marksStudent')" required>
+                                    <option value="">Select a subject...</option>
+                                </select>
+                            </div>
+                            <div class="col">
+                                <label>Student</label>
+                                <select id="marksStudent" required>
+                                    <option value="">Select subject first...</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-group row">
+                            <div class="col">
+                                <label>Marks Obtained</label>
+                                <input type="number" id="marksObtained" min="0" required>
+                            </div>
+                            <div class="col">
+                                <label>Max Marks</label>
+                                <input type="number" id="marksMax" min="1" value="100" required>
+                            </div>
+                        </div>
+                        <button type="submit" class="btn primary">Save Marks</button>
+                    </form>
+                    <div id="marksAlert" class="alert hidden"></div>
+                </div>
+            </div>
 
-    <hr>
+            <!-- Bulk Attendance Panel -->
+            <div id="panel-attendance" class="panel hidden">
+                <div class="panel-header">
+                    <h2>Bulk Attendance</h2>
+                    <p>Mark attendance for an entire class at once.</p>
+                </div>
+                <div class="form-card">
+                    <form id="attendanceLoadForm" class="row align-end">
+                        <div class="form-group col" style="margin-bottom:0">
+                            <label>Subject</label>
+                            <select id="attendanceSubject" class="my-subjects-dropdown" required>
+                                <option value="">Select a subject...</option>
+                            </select>
+                        </div>
+                        <div class="form-group col" style="margin-bottom:0">
+                            <label>Date</label>
+                            <input type="date" id="attendanceDate" required>
+                        </div>
+                        <div class="col">
+                            <button type="submit" class="btn secondary">Load Roster</button>
+                        </div>
+                    </form>
+                </div>
 
-    <h3>View Students</h3>
-    <input type="number" id="viewSubjectId" placeholder="Subject Offering ID"><br><br>
-    <button onclick="viewStudents()">Load Students</button>
+                <div id="attendanceRosterSection" class="data-table-section mt-4 hidden">
+                    <h3>Class Roster</h3>
+                    <form id="attendanceSubmitForm">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Reg No.</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody id="attendanceTableBody">
+                                <!-- Populated dynamically -->
+                            </tbody>
+                        </table>
+                        <div class="mt-4 pb-4">
+                            <button type="submit" class="btn primary">Submit Bulk Attendance</button>
+                        </div>
+                    </form>
+                    <div id="attendanceAlert" class="alert hidden mt-2"></div>
+                </div>
+            </div>
 
-    <ul id="studentsList"></ul>
+            <!-- Students List Panel -->
+            <div id="panel-students" class="panel hidden">
+                <div class="panel-header">
+                    <h2>Student Roster</h2>
+                    <p>View all enrolled students for a particular subject.</p>
+                </div>
+                <div class="form-card">
+                    <div class="form-group">
+                        <label>Select Subject</label>
+                        <select id="studentsSubject" class="my-subjects-dropdown"
+                            onchange="fetchStudentsList(this.value)">
+                            <option value="">Select a subject...</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="data-table-section mt-4">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Student ID</th>
+                                <th>Register Number</th>
+                            </tr>
+                        </thead>
+                        <tbody id="studentsTableBody">
+                            <tr>
+                                <td colspan="2" style="text-align:center;">Select a subject to view students</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
 
-    <script>
-        const API_BASE = "";
-        const token = localStorage.getItem("token");
+            <!-- Analytics Panel -->
+            <div id="panel-analytics" class="panel hidden">
+                <div class="panel-header">
+                    <h2>Class Analytics</h2>
+                    <p>Review class performance, average attendance, and identify low performers.</p>
+                </div>
+                <div class="form-card">
+                    <div class="form-group">
+                        <label>Select Subject</label>
+                        <select id="analyticsSubject" class="my-subjects-dropdown"
+                            onchange="fetchAnalytics(this.value)">
+                            <option value="">Select a subject...</option>
+                        </select>
+                    </div>
+                </div>
 
-        if (!token) {
-            window.location.href = "/";
-        }
+                <div id="analyticsDashboard" class="hidden mt-4">
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-title">Class Average Marks</div>
+                            <div class="stat-value" id="statAvgMarks">--%</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-title">Avg Attendance</div>
+                            <div class="stat-value" id="statAvgAtt">--%</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-title">Assign. Completion</div>
+                            <div class="stat-value" id="statAvgComp">--%</div>
+                        </div>
+                    </div>
 
-        function logout() {
-            localStorage.removeItem("token");
-            window.location.href = "/";
-        }
+                    <div class="data-table-section mt-4">
+                        <h3 class="text-danger flex align-center gap-2">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2">
+                                <path
+                                    d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z">
+                                </path>
+                                <line x1="12" y1="9" x2="12" y2="13"></line>
+                                <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                            </svg>
+                            Low Performers Alert
+                        </h3>
+                        <table class="data-table mt-2">
+                            <thead>
+                                <tr>
+                                    <th>Reg No.</th>
+                                    <th>Risk Level</th>
+                                    <th>Attendance</th>
+                                    <th>Avg Marks</th>
+                                </tr>
+                            </thead>
+                            <tbody id="lowPerformersBody">
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div id="analyticsAlert" class="alert hidden mt-2"></div>
+            </div>
 
-        async function createAssignment() {
-            const subjectId = parseInt(document.getElementById("subjectId").value);
-            const title = document.getElementById("title").value;
-            const description = document.getElementById("description").value;
-            const deadline = document.getElementById("deadline").value;
+        </main>
+    </div>
 
-            try {
-                const response = await fetch(`${API_BASE}/faculty/assignment`, {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json",
-                        "Authorization": "Bearer " + token
-                    },
-                    body: JSON.stringify({
-                        subject_offering_id: subjectId,
-                        title: title,
-                        description: description,
-                        deadline: deadline
-                    })
-                });
-
-                const data = await response.json();
-                document.getElementById("assignmentMsg").innerText = response.ok ? (data.data || "Success") : (data.detail || "Error");
-            } catch (e) {
-                document.getElementById("assignmentMsg").innerText = "Network Error";
-            }
-        }
-
-        async function uploadMarks() {
-            const subjectId = parseInt(document.getElementById("markSubjectId").value);
-            const studentId = parseInt(document.getElementById("studentId").value);
-            const marksObtained = parseInt(document.getElementById("marksObtained").value);
-            const maxMarks = parseInt(document.getElementById("maxMarks").value);
-
-            try {
-                const response = await fetch(`${API_BASE}/faculty/marks`, {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json",
-                        "Authorization": "Bearer " + token
-                    },
-                    body: JSON.stringify({
-                        subject_offering_id: subjectId,
-                        student_id: studentId,
-                        marks_obtained: marksObtained,
-                        max_marks: maxMarks
-                    })
-                });
-
-                const data = await response.json();
-                document.getElementById("marksMsg").innerText = response.ok ? (data.data || "Success") : (data.detail || "Error");
-            } catch (e) {
-                document.getElementById("marksMsg").innerText = "Network Error";
-            }
-        }
-
-        async function viewStudents() {
-            const subjectId = document.getElementById("viewSubjectId").value;
-            if (!subjectId) return;
-
-            try {
-                const response = await fetch(`${API_BASE}/faculty/students/${subjectId}`, {
-                    headers: {
-                        "Authorization": "Bearer " + token
-                    }
-                });
-
-                const data = await response.json();
-                const list = document.getElementById("studentsList");
-                list.innerHTML = "";
-
-                if (response.ok && data.data && Array.isArray(data.data)) {
-                    data.data.forEach(s => {
-                        const li = document.createElement("li");
-                        li.innerText = `Student ID: ${s.student_id} | Reg No: ${s.register_number}`;
-                        list.appendChild(li);
-                    });
-                } else {
-                    const li = document.createElement("li");
-                    li.innerText = data.detail || "Error fetching students";
-                    list.appendChild(li);
-                }
-            } catch (e) {
-                console.error("Network Error", e);
-            }
-        }
-    </script>
-
+    <!-- Replace script urls later properly! -->
+    <script src="/static/js/faculty.js?v=2"></script>
 </body>
 
 </html>

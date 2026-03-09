@@ -3,6 +3,7 @@ import re
 import json
 import numpy as np
 import faiss
+from functools import lru_cache
 from pypdf import PdfReader
 from sentence_transformers import SentenceTransformer
 from app.utils.logger import logger
@@ -61,37 +62,77 @@ def chunk_text(text, chunk_size=300, overlap=80):
     return chunks
 
 
-def build_index(subject_offering_id, pdf_path):
+def build_index(subject_id, pdf_path):
     subject_path = os.path.join(
-        VECTOR_STORE_PATH, f"subject_{subject_offering_id}"
+        VECTOR_STORE_PATH, f"subject_{subject_id}"
     )
     os.makedirs(subject_path, exist_ok=True)
 
+    index_file = os.path.join(subject_path, "index.faiss")
+    meta_file = os.path.join(subject_path, "metadata.json")
+
     logger.info(f"Extracting text from PDF: {pdf_path}")
     text = extract_text_from_pdf(pdf_path)
-    chunks = chunk_text(text)
+    new_chunks = chunk_text(text)
 
     model = get_embed_model()
-    embeddings = model.encode(chunks)
-    embeddings = np.array(embeddings).astype("float32")
+    new_embeddings = model.encode(new_chunks)
+    new_embeddings = np.array(new_embeddings).astype("float32")
 
-    dimension = embeddings.shape[1]
-    logger.info(f"Building FAISS index for subject {subject_offering_id}")
-    index = faiss.IndexFlatL2(dimension)
-    index.add(embeddings)
+    # Load existing index + metadata if they exist (append mode)
+    existing_metadata = []
+    if os.path.exists(index_file) and os.path.exists(meta_file):
+        logger.info(f"Appending to existing FAISS index for subject {subject_id}")
+        existing_index = faiss.read_index(index_file)
+        with open(meta_file, "r") as f:
+            existing_metadata = json.load(f)
+        existing_index.add(new_embeddings)
+        index = existing_index
+    else:
+        logger.info(f"Creating new FAISS index for subject {subject_id}")
+        dimension = new_embeddings.shape[1]
+        index = faiss.IndexFlatL2(dimension)
+        index.add(new_embeddings)
 
-    faiss.write_index(index, os.path.join(subject_path, "index.faiss"))
+    faiss.write_index(index, index_file)
 
-    metadata = [
-        {"chunk_index": i, "text": chunk}
-        for i, chunk in enumerate(chunks)
-    ]
+    # Append new chunks to metadata with correct indices
+    start_index = len(existing_metadata)
+    for i, chunk in enumerate(new_chunks):
+        existing_metadata.append({
+            "chunk_index": start_index + i,
+            "text": chunk
+        })
 
-    with open(os.path.join(subject_path, "metadata.json"), "w") as f:
-        json.dump(metadata, f)
+    with open(meta_file, "w") as f:
+        json.dump(existing_metadata, f)
+
+    logger.info(f"Subject {subject_id} index now has {len(existing_metadata)} total chunks")
+
+    # Invalidate Python RAM cache so next student query fetches these updated embeddings
+    load_faiss_index.cache_clear()
+    
+    # Also invalidate global LLM response cache in ai_service
+    try:
+        from app.services.ai_service import _response_cache
+        _response_cache.clear()
+        logger.info("Cleared global _response_cache to accommodate new syllabus embeddings.")
+    except Exception as e:
+        logger.warning(f"Could not clear ai_service _response_cache: {e}")
 
     return True
 
+
+@lru_cache(maxsize=5)
+def load_faiss_index(index_path, metadata_path):
+    if not os.path.exists(index_path):
+        return None, None
+        
+    index = faiss.read_index(index_path)
+    with open(metadata_path, "r") as f:
+        metadata = json.load(f)
+        
+    return index, metadata
 
 def retrieve_chunks(subject_offering_id, query, k=8):
     subject_path = os.path.join(
@@ -101,13 +142,10 @@ def retrieve_chunks(subject_offering_id, query, k=8):
     index_path = os.path.join(subject_path, "index.faiss")
     metadata_path = os.path.join(subject_path, "metadata.json")
 
-    if not os.path.exists(index_path):
+    index, metadata = load_faiss_index(index_path, metadata_path)
+    
+    if not index:
         return []
-
-    index = faiss.read_index(index_path)
-
-    with open(metadata_path, "r") as f:
-        metadata = json.load(f)
 
     # Keyword Boost Hack
     query_lower = query.lower()
