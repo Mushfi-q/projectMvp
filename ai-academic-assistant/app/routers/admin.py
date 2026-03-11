@@ -304,7 +304,7 @@ from sqlalchemy.exc import IntegrityError as SAIntegrityError
 from app.models.academic import (
     Department, Batch, Semester, Subject, SubjectOffering, Enrollment, Faculty, StudentSemesterHistory
 )
-from app.models.assignment import Assignment, Submission, InternalMark, Document, DocumentChunk
+from app.models.assignment import Assignment, Submission, Document, DocumentChunk
 from app.models.attendance import Attendance
 from app.models.reminder import Reminder
 
@@ -337,7 +337,7 @@ def _count_dependents(db, entity, item_id):
         assign_ids = [a.id for a in assignments]
         counts["Assignments"] = len(assignments)
         counts["Submissions"] = db.query(Submission).filter(Submission.assignment_id.in_(assign_ids)).count() if assign_ids else 0
-        counts["Internal Marks"] = db.query(InternalMark).filter(InternalMark.subject_offering_id.in_(so_ids)).count() if so_ids else 0
+        # counts["Internal Marks"] = db.query(InternalMark).filter(InternalMark.subject_offering_id.in_(so_ids)).count() if so_ids else 0
         docs = db.query(Document).filter(Document.subject_offering_id.in_(so_ids)).all() if so_ids else []
         doc_ids = [d.id for d in docs]
         counts["Documents"] = len(docs)
@@ -364,7 +364,7 @@ def _count_dependents(db, entity, item_id):
         assign_ids = [a.id for a in db.query(Assignment).filter(Assignment.subject_offering_id.in_(so_ids)).all()] if so_ids else []
         counts["Assignments"] = len(assign_ids)
         counts["Submissions"] = db.query(Submission).filter(Submission.assignment_id.in_(assign_ids)).count() if assign_ids else 0
-        counts["Internal Marks"] = db.query(InternalMark).filter(InternalMark.subject_offering_id.in_(so_ids)).count() if so_ids else 0
+        # counts["Internal Marks"] = db.query(InternalMark).filter(InternalMark.subject_offering_id.in_(so_ids)).count() if so_ids else 0
         doc_ids = [d.id for d in db.query(Document).filter(Document.subject_offering_id.in_(so_ids)).all()] if so_ids else []
         counts["Documents"] = len(doc_ids)
         counts["Document Chunks"] = db.query(DocumentChunk).filter(DocumentChunk.document_id.in_(doc_ids)).count() if doc_ids else 0
@@ -381,7 +381,7 @@ def _count_dependents(db, entity, item_id):
         assign_ids = [a.id for a in db.query(Assignment).filter(Assignment.subject_offering_id.in_(so_ids)).all()] if so_ids else []
         counts["Assignments"] = len(assign_ids)
         counts["Submissions"] = db.query(Submission).filter(Submission.assignment_id.in_(assign_ids)).count() if assign_ids else 0
-        counts["Internal Marks"] = db.query(InternalMark).filter(InternalMark.subject_offering_id.in_(so_ids)).count() if so_ids else 0
+        # counts["Internal Marks"] = db.query(InternalMark).filter(InternalMark.subject_offering_id.in_(so_ids)).count() if so_ids else 0
         doc_ids = [d.id for d in db.query(Document).filter(Document.subject_offering_id.in_(so_ids)).all()] if so_ids else []
         counts["Documents"] = len(doc_ids)
         counts["Document Chunks"] = db.query(DocumentChunk).filter(DocumentChunk.document_id.in_(doc_ids)).count() if doc_ids else 0
@@ -397,7 +397,7 @@ def _count_dependents(db, entity, item_id):
         counts["Enrollments"] = len(enroll_ids)
         counts["Attendance Records"] = db.query(Attendance).filter(Attendance.enrollment_id.in_(enroll_ids)).count() if enroll_ids else 0
         counts["Submissions"] = db.query(Submission).filter(Submission.student_id == item_id).count()
-        counts["Internal Marks"] = db.query(InternalMark).filter(InternalMark.student_id == item_id).count()
+        # counts["Internal Marks"] = db.query(InternalMark).filter(InternalMark.student_id == item_id).count()
         counts["Reminders"] = db.query(Reminder).filter(Reminder.student_id == item_id).count()
         counts["Semester History"] = db.query(StudentSemesterHistory).filter(StudentSemesterHistory.student_id == item_id).count()
 
@@ -410,7 +410,7 @@ def _count_dependents(db, entity, item_id):
         assign_ids = [a.id for a in db.query(Assignment).filter(Assignment.subject_offering_id.in_(so_ids)).all()] if so_ids else []
         counts["Assignments"] = len(assign_ids)
         counts["Submissions"] = db.query(Submission).filter(Submission.assignment_id.in_(assign_ids)).count() if assign_ids else 0
-        counts["Internal Marks"] = db.query(InternalMark).filter(InternalMark.subject_offering_id.in_(so_ids)).count() if so_ids else 0
+        # counts["Internal Marks"] = db.query(InternalMark).filter(InternalMark.subject_offering_id.in_(so_ids)).count() if so_ids else 0
         doc_ids = [d.id for d in db.query(Document).filter(Document.subject_offering_id.in_(so_ids)).all()] if so_ids else []
         counts["Documents"] = len(doc_ids)
         counts["Document Chunks"] = db.query(DocumentChunk).filter(DocumentChunk.document_id.in_(doc_ids)).count() if doc_ids else 0
@@ -424,7 +424,7 @@ def _count_dependents(db, entity, item_id):
         assign_ids = [a.id for a in db.query(Assignment).filter(Assignment.subject_offering_id.in_(so_ids)).all()] if so_ids else []
         counts["Assignments"] = len(assign_ids)
         counts["Submissions"] = db.query(Submission).filter(Submission.assignment_id.in_(assign_ids)).count() if assign_ids else 0
-        counts["Internal Marks"] = db.query(InternalMark).filter(InternalMark.subject_offering_id.in_(so_ids)).count() if so_ids else 0
+        # counts["Internal Marks"] = db.query(InternalMark).filter(InternalMark.subject_offering_id.in_(so_ids)).count() if so_ids else 0
         doc_ids = [d.id for d in db.query(Document).filter(Document.subject_offering_id.in_(so_ids)).all()] if so_ids else []
         counts["Documents"] = len(doc_ids)
         counts["Document Chunks"] = db.query(DocumentChunk).filter(DocumentChunk.document_id.in_(doc_ids)).count() if doc_ids else 0
@@ -436,7 +436,7 @@ def _count_dependents(db, entity, item_id):
         assign_ids = [a.id for a in db.query(Assignment).filter(Assignment.subject_offering_id == item_id).all()]
         counts["Assignments"] = len(assign_ids)
         counts["Submissions"] = db.query(Submission).filter(Submission.assignment_id.in_(assign_ids)).count() if assign_ids else 0
-        counts["Internal Marks"] = db.query(InternalMark).filter(InternalMark.subject_offering_id == item_id).count()
+        # counts["Internal Marks"] = db.query(InternalMark).filter(InternalMark.subject_offering_id == item_id).count()
         doc_ids = [d.id for d in db.query(Document).filter(Document.subject_offering_id == item_id).all()]
         counts["Documents"] = len(doc_ids)
         counts["Document Chunks"] = db.query(DocumentChunk).filter(DocumentChunk.document_id.in_(doc_ids)).count() if doc_ids else 0
@@ -459,7 +459,7 @@ def _cascade_delete_subject_offerings(db, so_ids):
     if assign_ids:
         db.query(Submission).filter(Submission.assignment_id.in_(assign_ids)).delete(synchronize_session=False)
         db.query(Assignment).filter(Assignment.id.in_(assign_ids)).delete(synchronize_session=False)
-    db.query(InternalMark).filter(InternalMark.subject_offering_id.in_(so_ids)).delete(synchronize_session=False)
+    # db.query(InternalMark).filter(InternalMark.subject_offering_id.in_(so_ids)).delete(synchronize_session=False)
     doc_ids = [d.id for d in db.query(Document).filter(Document.subject_offering_id.in_(so_ids)).all()]
     if doc_ids:
         db.query(DocumentChunk).filter(DocumentChunk.document_id.in_(doc_ids)).delete(synchronize_session=False)
@@ -475,7 +475,7 @@ def _cascade_delete_students(db, student_ids):
         db.query(Attendance).filter(Attendance.enrollment_id.in_(enroll_ids)).delete(synchronize_session=False)
         db.query(Enrollment).filter(Enrollment.id.in_(enroll_ids)).delete(synchronize_session=False)
     db.query(Submission).filter(Submission.student_id.in_(student_ids)).delete(synchronize_session=False)
-    db.query(InternalMark).filter(InternalMark.student_id.in_(student_ids)).delete(synchronize_session=False)
+    # db.query(InternalMark).filter(InternalMark.student_id.in_(student_ids)).delete(synchronize_session=False)
     db.query(Reminder).filter(Reminder.student_id.in_(student_ids)).delete(synchronize_session=False)
     db.query(StudentSemesterHistory).filter(StudentSemesterHistory.student_id.in_(student_ids)).delete(synchronize_session=False)
     db.query(Student).filter(Student.id.in_(student_ids)).delete(synchronize_session=False)

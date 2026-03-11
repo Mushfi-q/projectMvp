@@ -26,14 +26,7 @@ class Submission(Base):
     feedback = Column(Text, nullable=True)
 
 
-class InternalMark(Base):
-    __tablename__ = "internal_marks"
 
-    id = Column(Integer, primary_key=True, index=True)
-    subject_offering_id = Column(Integer, ForeignKey("subject_offerings.id"))
-    student_id = Column(Integer, ForeignKey("students.id"))
-    marks_obtained = Column(Integer)
-    max_marks = Column(Integer)
 
 
 class Document(Base):

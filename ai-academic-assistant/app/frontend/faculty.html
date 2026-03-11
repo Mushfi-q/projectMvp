@@ -39,12 +39,7 @@
                     </svg>
                     Assignments
                 </button>
-                <button class="nav-item" onclick="switchPanel('marks')">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M12 20v-6M6 20V10M18 20V4"></path>
-                    </svg>
-                    Upload Marks
-                </button>
+
 
                 <span class="nav-label">Class Operations</span>
                 <button class="nav-item" onclick="switchPanel('attendance')">
@@ -158,56 +153,44 @@
                                 <th>Subject Code</th>
                                 <th>Sem</th>
                                 <th>Deadline</th>
+                                <th>Action</th>
                             </tr>
                         </thead>
                         <tbody id="assignmentsTableBody">
                             <tr>
-                                <td colspan="5">Loading...</td>
+                                <td colspan="6">Loading...</td>
                             </tr>
                         </tbody>
                     </table>
                 </div>
+
+                <!-- Submissions Grading Modal -->
+                <div id="submissionsModal" class="modal hidden">
+                    <div class="modal-content" style="max-width: 800px;">
+                        <h3 id="submissionsModalTitle">Submissions</h3>
+                        <p style="color: var(--text-secondary); margin-bottom: 20px;">Review and grade student assignment uploads.</p>
+                        <div class="data-table-section">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>Student</th>
+                                        <th>Submitted</th>
+                                        <th>Attachment</th>
+                                        <th>Marks</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="submissionsTableBody">
+                                    <tr><td colspan="4" style="text-align:center;">Loading...</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        <div style="display: flex; justify-content: flex-end; margin-top: 20px;">
+                            <button type="button" class="btn secondary" onclick="closeSubmissionsModal()">Close Window</button>
+                        </div>
+                    </div>
+                </div>
             </div>
 
-            <!-- Marks Panel -->
-            <div id="panel-marks" class="panel hidden">
-                <div class="panel-header">
-                    <h2>Upload Marks</h2>
-                    <p>Record internal exam or assignment scores for students.</p>
-                </div>
-                <div class="form-card">
-                    <h3>Upload Internal Marks</h3>
-                    <form id="marksForm">
-                        <div class="form-group row">
-                            <div class="col">
-                                <label>Subject</label>
-                                <select id="marksSubject" class="my-subjects-dropdown"
-                                    onchange="loadStudentsForDropdown(this.value, 'marksStudent')" required>
-                                    <option value="">Select a subject...</option>
-                                </select>
-                            </div>
-                            <div class="col">
-                                <label>Student</label>
-                                <select id="marksStudent" required>
-                                    <option value="">Select subject first...</option>
-                                </select>
-                            </div>
-                        </div>
-                        <div class="form-group row">
-                            <div class="col">
-                                <label>Marks Obtained</label>
-                                <input type="number" id="marksObtained" min="0" required>
-                            </div>
-                            <div class="col">
-                                <label>Max Marks</label>
-                                <input type="number" id="marksMax" min="1" value="100" required>
-                            </div>
-                        </div>
-                        <button type="submit" class="btn primary">Save Marks</button>
-                    </form>
-                    <div id="marksAlert" class="alert hidden"></div>
-                </div>
-            </div>
 
             <!-- Bulk Attendance Panel -->
             <div id="panel-attendance" class="panel hidden">
@@ -219,13 +202,24 @@
                     <form id="attendanceLoadForm" class="row align-end">
                         <div class="form-group col" style="margin-bottom:0">
                             <label>Subject</label>
-                            <select id="attendanceSubject" class="my-subjects-dropdown" required>
+                            <select id="attendanceSubject" class="my-subjects-dropdown" onchange="fetchAttendanceHistory(this.value)" required>
                                 <option value="">Select a subject...</option>
                             </select>
                         </div>
                         <div class="form-group col" style="margin-bottom:0">
                             <label>Date</label>
                             <input type="date" id="attendanceDate" required>
+                        </div>
+                        <div class="form-group col" style="margin-bottom:0; flex: 0.5;">
+                            <label>Hours</label>
+                            <select id="attendanceHours" required>
+                                <option value="1">1</option>
+                                <option value="2">2</option>
+                                <option value="3">3</option>
+                                <option value="4">4</option>
+                                <option value="5">5</option>
+                                <option value="6">6</option>
+                            </select>
                         </div>
                         <div class="col">
                             <button type="submit" class="btn secondary">Load Roster</button>
@@ -253,6 +247,25 @@
                     </form>
                     <div id="attendanceAlert" class="alert hidden mt-2"></div>
                 </div>
+
+                <div class="data-table-section mt-4">
+                    <h3>Recent Attendance Records</h3>
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Hours</th>
+                                <th>Present</th>
+                                <th>Absent</th>
+                            </tr>
+                        </thead>
+                        <tbody id="attendanceHistoryTableBody">
+                            <tr>
+                                <td colspan="4" style="text-align:center;">Select a subject to view history</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
             </div>
 
             <!-- Students List Panel -->
@@ -276,11 +289,13 @@
                             <tr>
                                 <th>Student ID</th>
                                 <th>Register Number</th>
+                                <th>Attendance %</th>
+                                <th>Avg Marks %</th>
                             </tr>
                         </thead>
                         <tbody id="studentsTableBody">
                             <tr>
-                                <td colspan="2" style="text-align:center;">Select a subject to view students</td>
+                                <td colspan="4" style="text-align:center;">Select a subject to view students</td>
                             </tr>
                         </tbody>
                     </table>
@@ -352,7 +367,7 @@
     </div>
 
     <!-- Replace script urls later properly! -->
-    <script src="/static/js/faculty.js?v=2"></script>
+    <script src="/static/js/faculty.js?v=6"></script>
 </body>
 
 </html>

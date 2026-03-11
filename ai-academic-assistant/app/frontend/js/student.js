@@ -32,7 +32,7 @@ function switchView(viewId) {
     // Trigger data loads dynamically based on view
     if (viewId === 'dashboard') loadDashboardAnalytics();
     else if (viewId === 'subjects') loadSubjects();
-    else if (viewId === 'assignments') loadAssignments();
+    else if (viewId === 'assignments' || viewId === 'reminders') loadAssignments();
     else if (viewId === 'marks') {
         loadMarks();
         loadAttendance();
@@ -136,33 +136,157 @@ async function loadSubjects() {
 // Data Fetching: Assignments & Submissions
 // -----------------------------------------
 async function loadAssignments() {
-    const tbody = document.getElementById('assignmentsList');
+    const pendingBar = document.getElementById('studentPendingTasks');
+    const historyBar = document.getElementById('studentHistoryTasks');
+    const assignmentsTable = document.getElementById('studentAssignmentsTable');
+    
     try {
         const res = await fetch(`${API_URL}/student/assignments`, { headers: authHeaders });
 
         if (res.status === 404) {
-            tbody.innerHTML = `<tr><td colspan="4" style="color: var(--warning-orange)">Academic profile not linked.</td></tr>`;
+            pendingBar.innerHTML = `<div style="color: var(--warning-orange)">Academic profile not linked.</div>`;
+            historyBar.innerHTML = '';
+            assignmentsTable.innerHTML = `<tr><td colspan="5" style="color: var(--warning-orange); text-align: center;">Academic profile not linked.</td></tr>`;
             return;
         }
 
         const data = await res.json();
+        const assignments = data.data;
+        
+        pendingBar.innerHTML = '';
+        historyBar.innerHTML = '';
+        assignmentsTable.innerHTML = '';
 
-        tbody.innerHTML = '';
-        data.data.forEach(a => {
+        let hasPending = false;
+        let hasHistory = false;
+        let hasStandardAssignments = false;
+
+        assignments.forEach(a => {
             let date = new Date(a.deadline).toLocaleDateString();
-            tbody.innerHTML += `<tr>
-                <td style="font-weight: 500;">${a.title}</td>
-                <td style="color: var(--danger); font-size: 13px;">${date}</td>
-                <td>#${a.subject_offering_id}</td>
-                <td>
-                    <button class="action-btn" onclick="openSubmissionModal(${a.id}, '${a.title}')">
-                        Upload
-                    </button>
-                </td>
-            </tr>`;
+            
+            // Populate Assignments Table
+            if (a.type === 'assignment') {
+                hasStandardAssignments = true;
+                let statusBadge = a.is_submitted 
+                    ? '<span style="color:var(--accent); font-weight:600;">Submitted</span>'
+                    : '<span style="color:var(--warning-orange); font-weight:600;">Pending</span>';
+                    
+                let actionBtn = a.is_submitted
+                    ? `<button class="action-btn" disabled style="opacity:0.5;">Submitted</button>`
+                    : `<button class="action-btn" onclick="openSubmissionModal(${a.id}, '${a.title}')">Upload File</button>`;
+
+                assignmentsTable.innerHTML += `<tr>
+                    <td style="font-weight:500;">${a.title}</td>
+                    <td class="mono" style="color: var(--accent);">${a.subject_code}</td>
+                    <td style="font-size: 13px;">${date}</td>
+                    <td>${statusBadge}</td>
+                    <td>${actionBtn}</td>
+                </tr>`;
+            }
+
+            // Populate Task Bar
+            if (!a.is_submitted) {
+                hasPending = true;
+                if (a.type === 'reminder') {
+                    pendingBar.innerHTML += `
+                        <div style="min-width: 250px; background: var(--bg-card); border-radius: 8px; padding: 15px; border-left: 4px solid var(--warning-orange); box-shadow: var(--shadow-sm);">
+                            <div style="font-weight: 600; font-size: 15px; margin-bottom: 5px; color: var(--text-primary);">📝 ${a.title}</div>
+                            <div style="font-size: 12px; color: var(--warning-orange); margin-bottom: 12px; font-weight: 500;">Due: ${date}</div>
+                            <div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 15px;">Smart Reminder</div>
+                            <button class="action-btn" style="width: 100%; text-align: center; border-radius: 6px; padding: 8px; font-weight: 600; background: rgba(251, 191, 36, 0.1); color: var(--warning-orange);" onclick="markReminderDone(${a.id})">
+                                ✓ Mark Done
+                            </button>
+                        </div>
+                    `;
+                } else {
+                    pendingBar.innerHTML += `
+                        <div style="min-width: 250px; background: var(--bg-card); border-radius: 8px; padding: 15px; border-left: 4px solid var(--danger); box-shadow: var(--shadow-sm);">
+                            <div style="font-weight: 600; font-size: 15px; margin-bottom: 5px; color: var(--text-primary);">${a.title}</div>
+                            <div style="font-size: 12px; color: var(--danger); margin-bottom: 12px; font-weight: 500;">Due: ${date}</div>
+                            <div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 15px;">Topic: ${a.subject_code} - ${a.subject_name}</div>
+                            <button class="action-btn" style="width: 100%; text-align: center; border-radius: 6px; padding: 8px; font-weight: 600; background: rgba(0, 195, 255, 0.1);" onclick="openSubmissionModal(${a.id}, '${a.title}')">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 4px; vertical-align: middle;">
+                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                    <polyline points="17 8 12 3 7 8"></polyline>
+                                    <line x1="12" y1="3" x2="12" y2="15"></line>
+                                </svg>
+                                Upload File
+                            </button>
+                        </div>
+                    `;
+                }
+            } else {
+                hasHistory = true;
+                if (a.type === 'reminder') {
+                    historyBar.innerHTML += `
+                        <div style="min-width: 250px; background: var(--bg-card); border-radius: 8px; padding: 15px; border-left: 4px solid var(--accent); box-shadow: var(--shadow-sm); opacity: 0.85;">
+                            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 5px;">
+                                <div style="font-weight: 600; font-size: 15px; color: var(--text-primary); text-decoration: line-through;">📝 ${a.title}</div>
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2">
+                                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                                    <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                                </svg>
+                            </div>
+                            <div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 12px; font-weight: 500;">Completed</div>
+                            <div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 15px;">Smart Reminder</div>
+                            <div style="width: 100%; text-align: center; border-radius: 6px; padding: 8px; font-size: 13px; background: rgba(255, 255, 255, 0.05); border: 1px solid var(--border); color: var(--accent);">
+                                Done
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    let marksDisplay = a.marks !== null ? `<span style="color: var(--accent); font-weight: 700;">${a.marks} Marks</span>` : `<span style="color: var(--warning-orange);">Awaiting Grade</span>`;
+                    historyBar.innerHTML += `
+                        <div style="min-width: 250px; background: var(--bg-card); border-radius: 8px; padding: 15px; border-left: 4px solid var(--accent); box-shadow: var(--shadow-sm); opacity: 0.85;">
+                            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 5px;">
+                                <div style="font-weight: 600; font-size: 15px; color: var(--text-primary); text-decoration: line-through;">${a.title}</div>
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2">
+                                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                                    <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                                </svg>
+                            </div>
+                            <div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 12px; font-weight: 500;">Submitted</div>
+                            <div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 15px;">Topic: ${a.subject_code} - ${a.subject_name}</div>
+                            <div style="width: 100%; text-align: center; border-radius: 6px; padding: 8px; font-size: 13px; background: rgba(255, 255, 255, 0.05); border: 1px solid var(--border);">
+                                ${marksDisplay}
+                            </div>
+                        </div>
+                    `;
+                }
+            }
         });
+
+        if (!hasStandardAssignments) {
+            assignmentsTable.innerHTML = `<tr><td colspan="5" style="text-align: center; padding: 20px;">No assignments found.</td></tr>`;
+        }
+
+        if (!hasPending) {
+            pendingBar.innerHTML = `<div style="padding: 15px; border-radius: 8px; color: var(--accent); width: 100%; text-align: left; font-size: 14px;">You have no pending tasks. Great job!</div>`;
+        }
+        if (!hasHistory) {
+            historyBar.innerHTML = `<div style="padding: 15px; color: var(--text-secondary); width: 100%; text-align: left; font-size: 14px;">No history yet.</div>`;
+        }
+
     } catch (e) {
-        tbody.innerHTML = `<tr><td colspan="4">Error loading assignments</td></tr>`;
+        pendingBar.innerHTML = `<div style="color: var(--danger)">Failed to load tasks.</div>`;
+        historyBar.innerHTML = '';
+        assignmentsTable.innerHTML = `<tr><td colspan="5" style="color: var(--danger); text-align: center;">Error loading assignments.</td></tr>`;
+    }
+}
+
+async function markReminderDone(reminderId) {
+    try {
+        const res = await fetch(`${API_URL}/student/complete-reminder/${reminderId}`, {
+            method: 'POST',
+            headers: authHeaders
+        });
+        if (res.ok) {
+            loadAssignments(); 
+        } else {
+            alert("Error completing reminder.");
+        }
+    } catch (err) {
+        alert("Network failure.");
     }
 }
 
@@ -190,6 +314,7 @@ document.getElementById('submissionForm').addEventListener('submit', async (e) =
         if (res.ok) {
             alert("Assignment submitted to the Dropbox!");
             closeSubmissionModal();
+            loadAssignments();
         } else {
             alert("Error submitting. Please try again.");
         }
@@ -234,21 +359,43 @@ async function loadAttendance() {
         const res = await fetch(`${API_URL}/student/attendance`, { headers: authHeaders });
 
         if (res.status === 404) {
-            tbody.innerHTML = `<tr><td colspan="2" style="color: var(--warning-orange)">Academic profile not linked.</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="3" style="color: var(--warning-orange)">Academic profile not linked.</td></tr>`;
             return;
         }
 
         const data = await res.json();
         tbody.innerHTML = '';
+        
+        let totalPresent = 0;
+        let totalHours = 0;
+        
         data.data.forEach(a => {
             let color = a.percentage >= 75 ? "var(--accent)" : "var(--danger)";
+            if (a.total_hours === 0) color = "var(--text-secondary)";
+            
             tbody.innerHTML += `<tr>
-                <td>${a.subject}</td>
-                <td style="color: ${color}; font-weight: 600;">${a.percentage.toFixed(1)}%</td>
+                <td style="font-weight: 500;">${a.subject}</td>
+                <td>${a.present_hours} / ${a.total_hours}</td>
+                <td style="color: ${color}; font-weight: 600;">${a.total_hours === 0 ? '--%' : a.percentage.toFixed(1) + '%'}</td>
             </tr>`;
+            
+            totalPresent += a.present_hours;
+            totalHours += a.total_hours;
         });
+
+        // Overall total row
+        let overallPct = totalHours === 0 ? 0 : (totalPresent / totalHours) * 100;
+        let overallColor = overallPct >= 75 ? "var(--accent)" : "var(--danger)";
+        if (totalHours === 0) overallColor = "var(--text-secondary)";
+        
+        tbody.innerHTML += `<tr style="background: var(--bg-card); border-top: 2px solid var(--border);">
+            <td><strong>Overall Average</strong></td>
+            <td><strong>${totalPresent} / ${totalHours}</strong></td>
+            <td style="color: ${overallColor}; font-weight: 700;">${totalHours === 0 ? '--%' : overallPct.toFixed(1) + '%'}</td>
+        </tr>`;
+
     } catch (e) {
-        tbody.innerHTML = `<tr><td colspan="2">Failed to load</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="3">Failed to load</td></tr>`;
     }
 }
 

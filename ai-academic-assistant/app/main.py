@@ -11,6 +11,8 @@ app = FastAPI()
 
 # Serve static files (CSS)
 app.mount("/static", StaticFiles(directory="app/frontend"), name="static")
+os.makedirs("student_submissions", exist_ok=True)
+app.mount("/student_submissions", StaticFiles(directory="student_submissions"), name="student_submissions")
 
 origins = [
     "http://127.0.0.1:8080",

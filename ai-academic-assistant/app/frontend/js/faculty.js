@@ -12,11 +12,20 @@ const authHeaders = {
 
 // Panel Switching
 function switchPanel(panelId) {
-    document.querySelectorAll('.panel').forEach(p => p.classList.add('hidden'));
-    document.getElementById(`panel-${panelId}`).classList.remove('hidden');
+    document.querySelectorAll('.panel').forEach(p => {
+        p.classList.add('hidden');
+        p.classList.remove('active');
+    });
+    
+    const target = document.getElementById(`panel-${panelId}`);
+    if (target) {
+        target.classList.remove('hidden');
+        target.classList.add('active');
+    }
 
     document.querySelectorAll('.nav-item').forEach(btn => btn.classList.remove('active'));
-    document.querySelector(`button[onclick="switchPanel('${panelId}')"]`).classList.add('active');
+    const navBtn = document.querySelector(`button[onclick="switchPanel('${panelId}')"]`);
+    if (navBtn) navBtn.classList.add('active');
 
     // Trigger data loads
     if (panelId === 'offerings') loadMySubjects();
@@ -137,56 +146,117 @@ async function loadAssignments() {
                     <td class="mono">${a.subject_code}</td>
                     <td>Sem ${a.semester_id}</td>
                     <td>${new Date(a.deadline).toLocaleString()}</td>
+                    <td>
+                        <button class="action-btn" onclick="openSubmissionsModal(${a.id}, '${a.title}')">Submissions</button>
+                    </td>
                 </tr>
             `).join('');
         }
     } else {
-        tbody.innerHTML = '<tr><td colspan="5" style="color:var(--danger)">Failed to load assignments.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="6" style="color:var(--danger)">Failed to load assignments.</td></tr>';
     }
 }
 
+// Submissions Modal Logic
+async function openSubmissionsModal(assignmentId, title) {
+    document.getElementById('submissionsModalTitle').textContent = `Submissions: ${title}`;
+    document.getElementById('submissionsModal').classList.remove('hidden');
+    loadSubmissions(assignmentId);
+}
 
-// ==========================================
-// Marks
-// ==========================================
+function closeSubmissionsModal() {
+    document.getElementById('submissionsModal').classList.add('hidden');
+}
 
-async function loadStudentsForDropdown(soId, dropdownId) {
-    const select = document.getElementById(dropdownId);
-    if (!soId) {
-        select.innerHTML = '<option value="">Select subject first...</option>';
+async function loadSubmissions(assignmentId) {
+    const tbody = document.getElementById('submissionsTableBody');
+    tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;">Loading submissions...</td></tr>';
+    
+    const { ok, data } = await apiCall(`/faculty/assignment/${assignmentId}/submissions`);
+    
+    if (ok) {
+        if (data.data.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;">No students have submitted yet.</td></tr>';
+        } else {
+            tbody.innerHTML = data.data.map(sub => {
+                let currentMarks = sub.marks !== null ? sub.marks : '';
+                let date = new Date(sub.submitted_at).toLocaleString();
+                let fileLink = `<a href="/${sub.file_url}" target="_blank" style="color: var(--accent); text-decoration: none; font-weight: 600;">Download</a>`;
+                
+                return `
+                    <tr>
+                        <td>
+                            <div style="font-weight: 600;">${sub.student_name}</div>
+                            <div style="font-size: 12px; color: var(--text-secondary);">${sub.register_number}</div>
+                        </td>
+                        <td style="font-size: 13px;">${date}</td>
+                        <td>${fileLink}</td>
+                        <td>
+                            <div style="display: flex; gap: 8px; align-items: center;">
+                                <input type="number" id="grade_${sub.submission_id}" value="${currentMarks}" style="width: 70px; padding: 4px 8px;" placeholder="-" min="0">
+                                <button onclick="saveGrade(${sub.submission_id})" style="padding: 4px 10px; background: var(--accent); color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: 600;">Save</button>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+    } else {
+        tbody.innerHTML = '<tr><td colspan="4" style="color:var(--danger); text-align:center;">Failed to load submissions.</td></tr>';
+    }
+}
+
+async function saveGrade(submissionId) {
+    const marksInput = document.getElementById(`grade_${submissionId}`);
+    const marks = parseInt(marksInput.value);
+    
+    if (isNaN(marks)) {
+        alert("Please enter valid marks.");
         return;
     }
-    select.innerHTML = '<option value="">Loading students...</option>';
-    const { ok, data } = await apiCall(`/faculty/students/${soId}`);
-    if (ok && data.data) {
-        select.innerHTML = '<option value="">Select a student...</option>' +
-            data.data.map(s => `<option value="${s.student_id}">${s.register_number}</option>`).join('');
+    
+    const { ok, data } = await apiCall(`/faculty/submission/${submissionId}/grade`, 'POST', { marks: marks });
+    
+    if (ok) {
+        alert("Grade saved successfully!");
+        // Visual indicator of success
+        marksInput.style.borderColor = "var(--accent)";
+        setTimeout(() => marksInput.style.borderColor = "var(--border)", 2000);
     } else {
-        select.innerHTML = '<option value="">Error loading students</option>';
+        alert(data.detail || "Failed to save grade.");
     }
 }
 
-document.getElementById('marksForm').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const payload = {
-        subject_offering_id: parseInt(document.getElementById('marksSubject').value),
-        student_id: parseInt(document.getElementById('marksStudent').value),
-        marks_obtained: parseInt(document.getElementById('marksObtained').value),
-        max_marks: parseInt(document.getElementById('marksMax').value)
-    };
 
-    const { ok, data } = await apiCall('/faculty/marks', 'POST', payload);
-    if (ok) {
-        showAlert(document.getElementById('marksAlert'), "Marks uploaded successfully!", 'success');
-        document.getElementById('marksObtained').value = '';
-    } else {
-        showAlert(document.getElementById('marksAlert'), data.detail || "Upload failed.");
-    }
-});
+
 
 // ==========================================
 // Attendance Bulk
 // ==========================================
+
+async function fetchAttendanceHistory(soId) {
+    const tbody = document.getElementById('attendanceHistoryTableBody');
+    if (!soId) {
+        tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;">Select a subject to view history</td></tr>';
+        return;
+    }
+
+    tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;">Loading...</td></tr>';
+    const { ok, data } = await apiCall(`/faculty/attendance/history/${soId}`);
+
+    if (ok && data.data && data.data.length > 0) {
+        tbody.innerHTML = data.data.map(r => `
+            <tr>
+                <td>${r.date}</td>
+                <td>${r.hours}</td>
+                <td class="text-success fw-bold">${r.present_count}</td>
+                <td class="${r.absent_count > 0 ? 'text-danger fw-bold' : ''}">${r.absent_count}</td>
+            </tr>
+        `).join('');
+    } else {
+        tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;">No history found.</td></tr>';
+    }
+}
 
 let attendanceRoster = [];
 
@@ -223,6 +293,7 @@ document.getElementById('attendanceSubmitForm').addEventListener('submit', async
     e.preventDefault();
     const soId = document.getElementById('attendanceSubject').value;
     const date = document.getElementById('attendanceDate').value;
+    const hours = parseInt(document.getElementById('attendanceHours').value);
 
     const records = attendanceRoster.map(s => ({
         student_id: s.student_id,
@@ -232,12 +303,15 @@ document.getElementById('attendanceSubmitForm').addEventListener('submit', async
     const { ok, data } = await apiCall('/faculty/attendance/bulk', 'POST', {
         subject_offering_id: parseInt(soId),
         date: date,
+        hours: hours,
         records: records
     });
 
     if (ok) {
         showAlert(document.getElementById('attendanceAlert'), `Attendance submitted! ${data.marked} records added.`, 'success');
         document.getElementById('attendanceRosterSection').classList.add('hidden');
+        document.getElementById('attendanceLoadForm').reset();
+        fetchAttendanceHistory(soId);
     } else {
         showAlert(document.getElementById('attendanceAlert'), data.detail || "Submission failed.");
     }
@@ -250,11 +324,11 @@ document.getElementById('attendanceSubmitForm').addEventListener('submit', async
 async function fetchStudentsList(soId) {
     const tbody = document.getElementById('studentsTableBody');
     if (!soId) {
-        tbody.innerHTML = '<tr><td colspan="2" style="text-align:center;">Select a subject to view students</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;">Select a subject to view students</td></tr>';
         return;
     }
 
-    tbody.innerHTML = '<tr><td colspan="2" style="text-align:center;">Loading...</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;">Loading...</td></tr>';
     const { ok, data } = await apiCall(`/faculty/students/${soId}`);
 
     if (ok && data.data && data.data.length > 0) {
@@ -262,10 +336,12 @@ async function fetchStudentsList(soId) {
             <tr>
                 <td>${s.student_id}</td>
                 <td class="mono">${s.register_number}</td>
+                <td class="${s.attendance < 75 ? 'text-danger fw-bold' : ''}">${parseFloat(s.attendance || 0).toFixed(1)}%</td>
+                <td class="${s.marks < 50 ? 'text-danger fw-bold' : ''}">${parseFloat(s.marks || 0).toFixed(1)}%</td>
             </tr>
         `).join('');
     } else {
-        tbody.innerHTML = '<tr><td colspan="2" style="text-align:center;">No students enrolled.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;">No students enrolled.</td></tr>';
     }
 }
 

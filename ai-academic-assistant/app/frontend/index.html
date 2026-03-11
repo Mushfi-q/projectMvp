@@ -54,6 +54,13 @@
                     </svg>
                     Assignments
                 </button>
+                <button class="nav-item" onclick="switchView('reminders')">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+                        <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+                    </svg>
+                    Reminders & Tasks
+                </button>
                 <button class="nav-item" onclick="switchView('marks')">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
@@ -140,45 +147,51 @@
             <!-- 4. ASSIGNMENTS VIEW -->
             <div id="view-assignments" class="view-panel hidden scrollable-pane">
                 <div class="pane-header">
-                    <h2>Assignments & Dropbox</h2>
-                    <p>Track pending deadlines and securely upload submissions.</p>
+                    <h2>Assignments</h2>
+                    <p>View your assignments and securely upload submissions.</p>
                 </div>
+
                 <div class="data-table-container">
                     <table class="modern-table">
                         <thead>
                             <tr>
                                 <th>Assignment Title</th>
+                                <th>Subject</th>
                                 <th>Deadline</th>
-                                <th>Target Subject ID</th>
+                                <th>Status</th>
                                 <th>Action</th>
                             </tr>
                         </thead>
-                        <tbody id="assignmentsList">
-                            <!-- Populated dynamically -->
+                        <tbody id="studentAssignmentsTable">
+                            <tr><td colspan="5">Loading...</td></tr>
                         </tbody>
                     </table>
                 </div>
 
-                <!-- Hidden Submission Form injected on action -->
-                <div id="submissionModal" class="modal hidden">
-                    <div class="modal-content">
-                        <h3>Submit Assignment</h3>
-                        <p id="submittingAssignmentTitle" style="color:var(--text-secondary); margin-bottom: 20px;"></p>
-                        <form id="submissionForm">
-                            <input type="hidden" id="submissionAssignmentId">
-                            <input type="file" id="submissionFile" accept=".pdf,.doc,.docx,.zip" required
-                                style="margin-bottom: 15px;">
-                            <div style="display: flex; gap: 10px; justify-content: flex-end;">
-                                <button type="button" class="btn secondary"
-                                    onclick="closeSubmissionModal()">Cancel</button>
-                                <button type="submit" class="btn primary" id="uploadFileBtn">Upload & Submit</button>
-                            </div>
-                        </form>
+
+
+            <!-- 5. REMINDERS VIEW -->
+            <div id="view-reminders" class="view-panel hidden scrollable-pane">
+                <div class="pane-header">
+                    <h2>Reminders & Task Bar</h2>
+                    <p>Track pending actionable tasks and smart reminders.</p>
+                </div>
+
+                <!-- TASK BAR SECTION -->
+                <div class="task-bar-section" style="margin-bottom: 2rem;">
+                    <h3 style="margin-bottom: 1rem; font-size: 16px; color: var(--text-primary); border-bottom: 1px solid var(--border); padding-bottom: 8px;">Pending Tasks</h3>
+                    <div id="studentPendingTasks" style="display: flex; gap: 15px; overflow-x: auto; padding-bottom: 10px; margin-bottom: 20px;">
+                        <div class="loader" style="font-size: 12px;">Loading tasks...</div>
+                    </div>
+                    
+                    <h3 style="margin-bottom: 1rem; font-size: 16px; color: var(--text-primary); border-bottom: 1px solid var(--border); padding-bottom: 8px;">Task History</h3>
+                    <div id="studentHistoryTasks" style="display: flex; gap: 15px; overflow-x: auto; padding-bottom: 10px;">
+                        <div style="font-size:12px; color:var(--text-secondary);">History will appear here.</div>
                     </div>
                 </div>
             </div>
 
-            <!-- 5. MARKS & ATTENDANCE VIEW -->
+
             <div id="view-marks" class="view-panel hidden scrollable-pane">
                 <div class="pane-header">
                     <h2>Grades & Attendance Log</h2>
@@ -192,6 +205,7 @@
                             <thead>
                                 <tr>
                                     <th>Subject</th>
+                                    <th>Hours (Present/Total)</th>
                                     <th>Percentage</th>
                                 </tr>
                             </thead>
@@ -213,6 +227,25 @@
                             <tbody id="marksList"></tbody>
                         </table>
                     </div>
+                </div>
+            </div>
+
+            <!-- Global Modals -->
+            <!-- Hidden Submission Form injected on action -->
+            <div id="submissionModal" class="modal hidden">
+                <div class="modal-content">
+                    <h3>Submit Assignment</h3>
+                    <p id="submittingAssignmentTitle" style="color:var(--text-secondary); margin-bottom: 20px;"></p>
+                    <form id="submissionForm">
+                        <input type="hidden" id="submissionAssignmentId">
+                        <input type="file" id="submissionFile" accept=".pdf,.doc,.docx,.zip" required
+                            style="margin-bottom: 15px;">
+                        <div style="display: flex; gap: 10px; justify-content: flex-end;">
+                            <button type="button" class="btn secondary"
+                                onclick="closeSubmissionModal()">Cancel</button>
+                            <button type="submit" class="btn primary" id="uploadFileBtn">Upload & Submit</button>
+                        </div>
+                    </form>
                 </div>
             </div>
 

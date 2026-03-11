@@ -1,16 +1,16 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
-from datetime import datetime
+from datetime import datetime, date
 from typing import List, Optional
 
 from app.core.security import get_current_user
 from app.core.dependencies import get_db
 from app.models.user import User
-from app.models.assignment import Assignment, InternalMark, Submission
+from app.models.assignment import Assignment, Submission
 from app.models.academic import Faculty, SubjectOffering, Enrollment, Student
 from app.services.attendance_service import mark_attendance, calculate_attendance_percentage
-from app.services.ai_service import get_student_performance_summary
+from app.services.ai_service import get_student_performance_summary, calculate_average_marks
 
 router = APIRouter(prefix="/faculty", tags=["Faculty"])
 
@@ -29,11 +29,7 @@ class GenericFacultyResponse(BaseModel):
     data: str
 
 
-class MarkUpload(BaseModel):
-    subject_offering_id: int
-    student_id: int
-    marks_obtained: int
-    max_marks: int
+
 
 
 class AttendanceRecord(BaseModel):
@@ -43,6 +39,7 @@ class AttendanceRecord(BaseModel):
 class BulkAttendanceRequest(BaseModel):
     subject_offering_id: int
     date: str
+    hours: int
     records: List[AttendanceRecord]
 
 class GenericFacultyResponse(BaseModel):
@@ -52,10 +49,31 @@ class GenericFacultyResponse(BaseModel):
 class StudentListResponseData(BaseModel):
     student_id: int
     register_number: str
+    attendance: float
+    marks: float
 
 class StudentListResponse(BaseModel):
     success: bool
     data: List[StudentListResponseData]
+
+
+class AssignmentSubmissionData(BaseModel):
+    submission_id: int
+    student_id: int
+    register_number: str
+    student_name: str
+    file_url: str
+    submitted_at: datetime
+    marks: Optional[int]
+    feedback: Optional[str]
+
+class AssignmentSubmissionsResponse(BaseModel):
+    success: bool
+    data: List[AssignmentSubmissionData]
+
+class GradeSubmissionRequest(BaseModel):
+    marks: int
+    feedback: Optional[str] = None
 
 class FacultyAnalyticsLowPerformer(BaseModel):
     student_id: int
@@ -80,6 +98,16 @@ class BulkAttendanceResponse(BaseModel):
     marked: int
     absences_alerted: int
     details: str
+
+class AttendanceHistoryItem(BaseModel):
+    date: date
+    hours: int
+    present_count: int
+    absent_count: int
+
+class AttendanceHistoryResponse(BaseModel):
+    success: bool
+    data: List[AttendanceHistoryItem]
 
 
 @router.get("/subjects", summary="List all Subjects for dropdown")
@@ -219,28 +247,65 @@ def create_assignment(
     return {"success": True, "data": "Assignment created"}
 
 
-# -------- Upload Marks --------
+# -------- View & Grade Submissions --------
 
-@router.post("/marks", response_model=GenericFacultyResponse, summary="Upload student marks")
-def upload_marks(
-    data: MarkUpload,
+@router.get("/assignment/{assignment_id}/submissions", response_model=AssignmentSubmissionsResponse, summary="Get all submissions for an assignment")
+def get_assignment_submissions(
+    assignment_id: int,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     if current_user.role.lower() != "faculty":
         raise HTTPException(status_code=403, detail="Only faculty allowed")
 
-    mark = InternalMark(
-        subject_offering_id=data.subject_offering_id,
-        student_id=data.student_id,
-        marks_obtained=data.marks_obtained,
-        max_marks=data.max_marks
-    )
+    assignment = db.query(Assignment).filter(Assignment.id == assignment_id).first()
+    if not assignment:
+        raise HTTPException(status_code=404, detail="Assignment not found")
 
-    db.add(mark)
+    submissions = db.query(Submission).filter(Submission.assignment_id == assignment_id).all()
+    
+    result = []
+    for sub in submissions:
+        student = db.query(Student).filter(Student.id == sub.student_id).first()
+        student_user = db.query(User).filter(User.id == student.user_id).first() if student else None
+        
+        result.append({
+            "submission_id": sub.id,
+            "student_id": sub.student_id,
+            "register_number": student.register_number if student else "Unknown",
+            "student_name": student_user.name if student_user else "Unknown Student",
+            "file_url": sub.file_url.replace("\\", "/") if sub.file_url else "",
+            "submitted_at": sub.submitted_at,
+            "marks": sub.marks,
+            "feedback": sub.feedback
+        })
+        
+    return {"success": True, "data": result}
+    
+
+@router.post("/submission/{submission_id}/grade", response_model=GenericFacultyResponse, summary="Grade a student submission")
+def grade_submission(
+    submission_id: int,
+    data: GradeSubmissionRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    if current_user.role.lower() != "faculty":
+        raise HTTPException(status_code=403, detail="Only faculty allowed")
+
+    submission = db.query(Submission).filter(Submission.id == submission_id).first()
+    if not submission:
+        raise HTTPException(status_code=404, detail="Submission not found")
+
+    submission.marks = data.marks
+    submission.feedback = data.feedback
+    
     db.commit()
 
-    return {"success": True, "data": "Marks uploaded"}
+    return {"success": True, "data": "Grade saved successfully"}
+
+
+
 
 
 # -------- View Students in Subject --------
@@ -263,9 +328,18 @@ def list_students(
     for e in enrollments:
         student = db.query(Student).filter(Student.id == e.student_id).first()
         if student:
+            calc_attendance_info = calculate_attendance_percentage(db, student.id, subject_offering_id)
+            calc_attendance = calc_attendance_info["percentage"]
+            calc_marks = calculate_average_marks(db, student.id, subject_offering_id)
+            
+            # Handle empty strings from AI service
+            marks_val = float(calc_marks) if isinstance(calc_marks, (int, float)) else 0.0
+
             student_list.append({
                 "student_id": student.id,
-                "register_number": student.register_number
+                "register_number": student.register_number,
+                "attendance": float(calc_attendance),
+                "marks": marks_val
             })
 
     return {"success": True, "data": student_list}
@@ -273,7 +347,7 @@ def list_students(
 
 # -------- Mark Bulk Attendance --------
 
-@router.post("/attendance", response_model=BulkAttendanceResponse, summary="Mark bulk attendance for a class")
+@router.post("/attendance/bulk", response_model=BulkAttendanceResponse, summary="Mark bulk attendance for a class")
 def bulk_mark_attendance(
     data: BulkAttendanceRequest,
     current_user: User = Depends(get_current_user),
@@ -302,13 +376,50 @@ def bulk_mark_attendance(
 
     records_native = [record.model_dump() for record in data.records]
 
-    result = mark_attendance(db, data.subject_offering_id, records_native, attendance_date)
+    result = mark_attendance(db, data.subject_offering_id, records_native, attendance_date, data.hours)
     return {"success": True, **result}
+
+
+# -------- Attendance History --------
+
+@router.get("/attendance/history/{subject_offering_id}", response_model=AttendanceHistoryResponse, summary="Get attendance history for a subject")
+def get_attendance_history(subject_offering_id: int, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    if current_user.role.lower() != "faculty":
+        raise HTTPException(status_code=403, detail="Only faculty allowed")
+        
+    from app.models.academic import Enrollment
+    from app.models.attendance import Attendance
+    from sqlalchemy import func, case
+    
+    present_case = case((Attendance.status == 'Present', 1), else_=0)
+    absent_case = case((Attendance.status == 'Absent', 1), else_=0)
+    
+    records = db.query(
+        Attendance.date,
+        Attendance.hours,
+        func.sum(present_case).label('present_count'),
+        func.sum(absent_case).label('absent_count')
+    ).join(Enrollment, Attendance.enrollment_id == Enrollment.id)\
+     .filter(Enrollment.subject_offering_id == subject_offering_id)\
+     .group_by(Attendance.date, Attendance.hours)\
+     .order_by(Attendance.date.desc())\
+     .all()
+     
+    history = []
+    for r in records:
+        history.append({
+            "date": r.date,
+            "hours": r.hours,
+            "present_count": r.present_count or 0,
+            "absent_count": r.absent_count or 0
+        })
+        
+    return {"success": True, "data": history}
 
 
 # -------- Faculty Dashboard Analytics --------
 
-@router.get("/dashboard/analytics/{subject_offering_id}", response_model=FacultyAnalyticsResponse, summary="Get advanced analytics for faculty dashboard")
+@router.get("/analytics/{subject_offering_id}", response_model=FacultyAnalyticsResponse, summary="Get advanced analytics for faculty dashboard")
 def faculty_dashboard_analytics(
     subject_offering_id: int,
     current_user: User = Depends(get_current_user),
@@ -334,10 +445,14 @@ def faculty_dashboard_analytics(
     total_students = len(student_ids)
 
     # 1. Class Average
-    marks = db.query(InternalMark).filter(InternalMark.subject_offering_id == subject_offering_id).all()
-    total_obtained = sum(m.marks_obtained for m in marks)
-    total_max = sum(m.max_marks for m in marks)
-    class_average = round((total_obtained / total_max * 100) if total_max > 0 else 0, 2)
+    # We calculate class average by averaging each student's auto-calculated assignment average
+    student_averages = []
+    for sid in student_ids:
+        avg = calculate_average_marks(db, sid, subject_offering_id)
+        if isinstance(avg, (int, float)):
+            student_averages.append(avg)
+
+    class_average = round(sum(student_averages) / len(student_averages), 2) if student_averages else 0.0
 
     # 2. Low-Performing Students & Attendance Summary
     low_performers = []
@@ -366,8 +481,10 @@ def faculty_dashboard_analytics(
     total_assignments_expected = len(assignments) * total_students
     if total_assignments_expected > 0:
         assignment_ids = [a.id for a in assignments]
-        total_submissions = db.query(Submission).filter(Submission.assignment_id.in_(assignment_ids)).count()
-        completion_rate = round((total_submissions / total_assignments_expected) * 100, 2)
+        total_submissions = db.query(Submission.student_id, Submission.assignment_id).filter(
+            Submission.assignment_id.in_(assignment_ids)
+        ).distinct().count()
+        completion_rate = min(100.0, round((total_submissions / total_assignments_expected) * 100, 2))
     else:
         completion_rate = 0.0
 

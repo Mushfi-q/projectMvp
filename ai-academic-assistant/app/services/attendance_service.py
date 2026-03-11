@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from app.models.academic import Enrollment
 from app.models.attendance import Attendance
 
-def mark_attendance(db: Session, subject_offering_id: int, attendance_data: list[dict], attendance_date: date = None):
+def mark_attendance(db: Session, subject_offering_id: int, attendance_data: list[dict], attendance_date: date = None, hours: int = 1):
     """
     attendance_data = [
         {"student_id": 1, "status": "Present"},
@@ -36,13 +36,15 @@ def mark_attendance(db: Session, subject_offering_id: int, attendance_data: list
             if existing:
                 # Update existing
                 existing.status = status
+                existing.hours = hours
             else:
                 # Create new
                 records_to_insert.append(
                     Attendance(
                         enrollment_id=enrollment.id,
                         date=attendance_date,
-                        status=status
+                        status=status,
+                        hours=hours
                     )
                 )
 
@@ -50,7 +52,15 @@ def mark_attendance(db: Session, subject_offering_id: int, attendance_data: list
         db.add_all(records_to_insert)
         
     db.commit()
-    return {"message": "Attendance marked successfully"}
+    
+    absent_count = sum(1 for item in attendance_data if item.get("status") == "Absent")
+    total_marked = len(attendance_data)
+    
+    return {
+        "marked": total_marked,
+        "absences_alerted": absent_count,
+        "details": f"Attendance marked for {total_marked} students. {absent_count} absences recorded."
+    }
 
 def calculate_attendance_percentage(db: Session, student_id: int, subject_offering_id: int):
     enrollment = db.query(Enrollment).filter(
@@ -59,14 +69,18 @@ def calculate_attendance_percentage(db: Session, student_id: int, subject_offeri
     ).first()
 
     if not enrollment:
-        return 100.0
+        return {"percentage": 100.0, "present_hours": 0, "total_hours": 0}
 
     records = enrollment.attendance_records
 
-    total = len(records)
-    if total == 0:
-        return 100.0
+    total_hours = sum(r.hours for r in records)
+    if total_hours == 0:
+        return {"percentage": 0.0, "present_hours": 0, "total_hours": 0}
 
-    present = sum(1 for r in records if r.status == "Present")
+    present_hours = sum(r.hours for r in records if r.status == "Present")
 
-    return round((present / total) * 100, 2)
+    return {
+        "percentage": round((present_hours / total_hours) * 100, 2),
+        "present_hours": present_hours,
+        "total_hours": total_hours
+    }

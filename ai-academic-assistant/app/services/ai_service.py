@@ -5,7 +5,7 @@ client = Groq(api_key=GROQ_API_KEY)
 from app.services.rag_service import retrieve_chunks
 from app.services.attendance_service import calculate_attendance_percentage
 from datetime import datetime, timedelta
-from app.models.assignment import Assignment, InternalMark, Submission
+from app.models.assignment import Assignment, Submission
 from app.models.academic import Enrollment, SubjectOffering
 from app.models.chat import ChatMessage
 from app.database import SessionLocal
@@ -57,19 +57,29 @@ def count_missed_assignments(db, student_id, subject_offering_id):
     return missed
 
 def calculate_average_marks(db, student_id, subject_offering_id):
-    marks = db.query(InternalMark).filter(
-        InternalMark.student_id == student_id,
-        InternalMark.subject_offering_id == subject_offering_id
+    # Get all assignments for the subject
+    assignments = db.query(Assignment).filter(Assignment.subject_offering_id == subject_offering_id).all()
+    if not assignments:
+        return "No assignments recorded yet"
+        
+    assignment_ids = [a.id for a in assignments]
+    
+    # Get all graded submissions for those assignments by this student
+    submissions = db.query(Submission).filter(
+        Submission.assignment_id.in_(assignment_ids),
+        Submission.student_id == student_id,
+        Submission.marks.isnot(None)
     ).all()
 
-    if not marks:
-        return "No exams recorded yet"
+    if not submissions:
+        return "No graded assignments yet"
 
-    total_obtained = sum(m.marks_obtained for m in marks)
-    total_max = sum(m.max_marks for m in marks)
+    total_obtained = sum(sub.marks for sub in submissions)
+    # Assuming each assignment is historically graded out of 100
+    total_max = len(submissions) * 100
 
     if total_max == 0:
-        return "No exams recorded yet"
+        return "No graded assignments yet"
 
     return round((total_obtained / total_max) * 100, 2)
 
@@ -88,9 +98,10 @@ def get_student_performance_summary(db, student_id):
         subject = enrollment.subject_offering.subject.subject_name
         subject_offering_id = enrollment.subject_offering.id
 
-        attendance_pct = calculate_attendance_percentage(
+        attendance_info = calculate_attendance_percentage(
             db, student_id, subject_offering_id
         )
+        attendance_pct = attendance_info["percentage"]
 
         avg_marks_pct = calculate_average_marks(
             db, student_id, subject_offering_id
@@ -154,22 +165,17 @@ def get_deadline_data(db, subject_offering_id):
 def get_performance_data(db, subject_offering_id, student_id):
     performance_info = ""
     if student_id:
-        marks = db.query(InternalMark).filter(
-            InternalMark.subject_offering_id == subject_offering_id,
-            InternalMark.student_id == student_id
-        ).all()
+        avg_marks = calculate_average_marks(db, student_id, subject_offering_id)
+        
+        if isinstance(avg_marks, str):
+            # E.g. "No graded assignments yet"
+            return avg_marks
 
-        if not marks:
-            return "No exams recorded yet."
-
-        for m in marks:
-            if m.max_marks > 0:
-                percentage = (m.marks_obtained / m.max_marks) * 100
-                performance_info += f"""
+        performance_info = f"""
 PERFORMANCE_DATA_START
-MARKS_OBTAINED={m.marks_obtained}
-MAX_MARKS={m.max_marks}
-PERCENTAGE={percentage:.2f}
+MARKS_OBTAINED={avg_marks}
+MAX_MARKS=100
+PERCENTAGE={avg_marks:.2f}
 WEAK_THRESHOLD=50
 PERFORMANCE_DATA_END
 """

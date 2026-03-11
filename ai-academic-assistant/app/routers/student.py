@@ -8,10 +8,11 @@ import os
 from app.core.security import get_current_user
 from app.core.dependencies import get_db
 from app.models.user import User
-from app.models.assignment import Assignment, Submission, InternalMark
+from app.models.assignment import Assignment, Submission
 from app.models.academic import Student, Enrollment, SubjectOffering, Subject
+from app.models.reminder import Reminder
 from app.services.attendance_service import calculate_attendance_percentage
-from app.services.ai_service import get_student_performance_summary
+from app.services.ai_service import get_student_performance_summary, calculate_average_marks
 
 router = APIRouter(prefix="/student", tags=["Student"])
 
@@ -25,7 +26,12 @@ class AssignmentResponse(BaseModel):
     id: int
     title: str
     deadline: datetime
-    subject_offering_id: int
+    subject_offering_id: Optional[int] = None
+    subject_code: Optional[str] = None
+    subject_name: Optional[str] = None
+    is_submitted: bool
+    marks: Optional[int] = None
+    type: str = "assignment"
 
 class MarksResponse(BaseModel):
     subject_offering_id: int
@@ -35,6 +41,8 @@ class MarksResponse(BaseModel):
 class AttendanceResponse(BaseModel):
     subject: str
     percentage: float
+    present_hours: int = 0
+    total_hours: int = 0
 
 class GenericResponse(BaseModel):
     success: bool
@@ -150,13 +158,44 @@ def view_assignments(
             Assignment.subject_offering_id == e.subject_offering_id
         ).all()
 
+        offering = db.query(SubjectOffering).filter(SubjectOffering.id == e.subject_offering_id).first()
+        subject = db.query(Subject).filter(Subject.id == offering.subject_id).first() if offering else None
+
         for a in subject_assignments:
+            submission = db.query(Submission).filter(
+                Submission.assignment_id == a.id,
+                Submission.student_id == student.id
+            ).first()
+            
             assignments.append({
                 "id": a.id,
                 "title": a.title,
                 "deadline": a.deadline,
-                "subject_offering_id": a.subject_offering_id
+                "subject_offering_id": a.subject_offering_id,
+                "subject_code": subject.subject_code if subject else "Unknown",
+                "subject_name": subject.subject_name if subject else "Unknown",
+                "is_submitted": submission is not None,
+                "marks": submission.marks if submission else None,
+                "type": "assignment"
             })
+
+    # Fetch Reminders
+    reminders = db.query(Reminder).filter(Reminder.student_id == student.id).all()
+    for r in reminders:
+        assignments.append({
+            "id": r.id,
+            "title": r.title,
+            "deadline": r.due_date,
+            "subject_offering_id": None,
+            "subject_code": None,
+            "subject_name": None,
+            "is_submitted": r.is_completed,
+            "marks": None,
+            "type": "reminder"
+        })
+
+    # Sort by deadline descending so history puts newest past tasks first
+    assignments.sort(key=lambda x: x["deadline"], reverse=True)
 
     return {"success": True, "data": assignments}
 
@@ -175,18 +214,21 @@ def view_marks(
     if not student:
         raise HTTPException(status_code=404, detail="Student profile not found")
 
-    marks = db.query(InternalMark).filter(
-        InternalMark.student_id == student.id
+    enrollments = db.query(Enrollment).filter(
+        Enrollment.student_id == student.id
     ).all()
 
     result = []
 
-    for m in marks:
-        result.append({
-            "subject_offering_id": m.subject_offering_id,
-            "marks_obtained": m.marks_obtained,
-            "max_marks": m.max_marks
-        })
+    for e in enrollments:
+        avg = calculate_average_marks(db, student.id, e.subject_offering_id)
+        
+        if isinstance(avg, (int, float)):
+            result.append({
+                "subject_offering_id": e.subject_offering_id,
+                "marks_obtained": avg,
+                "max_marks": 100.0  # By convention, percentages are out of 100
+            })
 
     return {"success": True, "data": result}
 
@@ -229,6 +271,31 @@ async def submit_assignment(
     return {"success": True, "data": "Assignment submitted"}
 
 
+# -------- Complete Reminder --------
+
+@router.post("/complete-reminder/{reminder_id}", response_model=GenericResponse, summary="Mark a reminder as completed")
+def complete_reminder(
+    reminder_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    if current_user.role.lower() != "student":
+        raise HTTPException(status_code=403, detail="Only students allowed")
+
+    student = db.query(Student).filter(Student.user_id == current_user.id).first()
+    if not student:
+        raise HTTPException(status_code=404, detail="Student profile not found")
+
+    reminder = db.query(Reminder).filter(Reminder.id == reminder_id, Reminder.student_id == student.id).first()
+    if not reminder:
+        raise HTTPException(status_code=404, detail="Reminder not found")
+
+    reminder.is_completed = True
+    db.commit()
+
+    return {"success": True, "data": "Reminder marked as completed"}
+
+
 # -------- View Attendance --------
 
 @router.get("/attendance", response_model=StudentAttendanceResponse, summary="Get student attendance")
@@ -257,11 +324,13 @@ def view_attendance(
         subject = db.query(Subject).filter(Subject.id == offering.subject_id).first()
         subject_name = subject.subject_name if subject else "Unknown Subject"
 
-        percentage = calculate_attendance_percentage(db, student.id, e.subject_offering_id)
+        att_info = calculate_attendance_percentage(db, student.id, e.subject_offering_id)
 
         attendance_data.append({
             "subject": subject_name,
-            "percentage": percentage
+            "percentage": att_info["percentage"],
+            "present_hours": att_info["present_hours"],
+            "total_hours": att_info["total_hours"]
         })
 
     return {"success": True, "data": attendance_data}
@@ -284,14 +353,25 @@ def student_dashboard_analytics(
     summary = get_student_performance_summary(db, student.id)
     
     marks_trend = []
-    marks = db.query(InternalMark).filter(InternalMark.student_id == student.id).order_by(InternalMark.created_at).all()
-    for m in marks:
-        subject = db.query(SubjectOffering).join(Subject).filter(SubjectOffering.id == m.subject_offering_id).first()
+    submissions = db.query(Submission).filter(
+        Submission.student_id == student.id,
+        Submission.marks.isnot(None)
+    ).order_by(Submission.submitted_at).all()
+    
+    for sub in submissions:
+        assignment = db.query(Assignment).filter(Assignment.id == sub.assignment_id).first()
+        if not assignment: continue
+        
+        offering = db.query(SubjectOffering).filter(SubjectOffering.id == assignment.subject_offering_id).first()
+        if not offering: continue
+        
+        subject = db.query(Subject).filter(Subject.id == offering.subject_id).first()
+        
         marks_trend.append({
-            "subject": subject.subject.subject_name if subject else "Unknown",
-            "score": m.marks_obtained,
-            "max": m.max_marks,
-            "date": m.created_at.strftime("%Y-%m-%d") if m.created_at else "Unknown"
+            "subject": subject.subject_name if subject else "Unknown",
+            "score": sub.marks,
+            "max": 100.0,
+            "date": sub.submitted_at.strftime("%Y-%m-%d") if sub.submitted_at else "Unknown"
         })
 
     attendance_graph = []
