@@ -42,7 +42,9 @@ class StudentCreate(BaseModel):
     current_semester_id: int
 
 class FacultyCreate(BaseModel):
-    user_id: int
+    name: str
+    email: str
+    password: str
     department_id: int
     designation: str
 
@@ -95,11 +97,34 @@ def create_student(data: StudentCreate, current_user = Depends(get_current_user)
 @router.post("/faculty", response_model=GenericAdminResponse, summary="Create a new Faculty Profile")
 def create_faculty(data: FacultyCreate, current_user = Depends(get_current_user), db: Session = Depends(get_db)):
     if current_user.role.lower() != "admin": raise HTTPException(status_code=403, detail="Admin only")
+    
+    # 1. Check if user already exists
+    existing_user = db.query(User).filter(User.email == data.email).first()
+    if existing_user:
+        raise HTTPException(status_code=400, detail="User with this email already exists")
+
+    # 2. Create User account
+    new_user = User(
+        name=data.name,
+        email=data.email,
+        password_hash=hash_password(data.password),
+        role="faculty"
+    )
+    db.add(new_user)
+    db.commit()
+    db.refresh(new_user)
+
+    # 3. Create Faculty profile linked to User
     from app.models.academic import Faculty
-    faculty = Faculty(**data.model_dump())
+    faculty = Faculty(
+        user_id=new_user.id,
+        department_id=data.department_id,
+        designation=data.designation
+    )
     db.add(faculty)
     db.commit()
-    return {"success": True, "data": "Faculty profile linked successfully"}
+    
+    return {"success": True, "data": f"Faculty profile created for {data.name}"}
 
 
 # -------- Listing Endpoints --------
@@ -478,7 +503,11 @@ def _cascade_delete_students(db, student_ids):
     # db.query(InternalMark).filter(InternalMark.student_id.in_(student_ids)).delete(synchronize_session=False)
     db.query(Reminder).filter(Reminder.student_id.in_(student_ids)).delete(synchronize_session=False)
     db.query(StudentSemesterHistory).filter(StudentSemesterHistory.student_id.in_(student_ids)).delete(synchronize_session=False)
+    # Get user_ids to delete them too
+    user_ids = [s.user_id for s in db.query(Student).filter(Student.id.in_(student_ids)).all()]
     db.query(Student).filter(Student.id.in_(student_ids)).delete(synchronize_session=False)
+    if user_ids:
+        db.query(User).filter(User.id.in_(user_ids)).delete(synchronize_session=False)
 
 
 @router.get("/dependents/{entity}/{item_id}", summary="Check dependent records before delete")
@@ -570,7 +599,10 @@ def delete_faculty(item_id: int, current_user = Depends(get_current_user), db: S
     if not obj: raise HTTPException(status_code=404, detail="Faculty not found")
     so_ids = [o.id for o in db.query(SubjectOffering).filter(SubjectOffering.faculty_id == item_id).all()]
     _cascade_delete_subject_offerings(db, so_ids)
+    user_id = obj.user_id
     db.delete(obj)
+    if user_id:
+        db.query(User).filter(User.id == user_id).delete(synchronize_session=False)
     db.commit()
     return {"success": True, "data": f"Faculty #{item_id} and all dependents deleted"}
 

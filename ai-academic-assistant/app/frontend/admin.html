@@ -25,20 +25,20 @@
 
             <nav class="sidebar-nav">
                 <span class="nav-label">Academic Setup</span>
-                <button class="nav-item active" onclick="switchPanel('departments')">
+                <button class="nav-item active" onclick="switchPanel('departments', event)">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"></path>
                     </svg>
                     Departments
                 </button>
-                <button class="nav-item" onclick="switchPanel('batches')">
+                <button class="nav-item" onclick="switchPanel('batches', event)">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
                         <line x1="3" y1="9" x2="21" y2="9"></line>
                     </svg>
                     Batches
                 </button>
-                <button class="nav-item" onclick="switchPanel('semesters')">
+                <button class="nav-item" onclick="switchPanel('semesters', event)">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <polyline points="6 9 6 2 18 2 18 9"></polyline>
                         <path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"></path>
@@ -46,7 +46,7 @@
                     </svg>
                     Semesters
                 </button>
-                <button class="nav-item" onclick="switchPanel('subjects')">
+                <button class="nav-item" onclick="switchPanel('subjects', event)">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M4 19.5A2.5 2.5 0 016.5 17H20"></path>
                         <path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"></path>
@@ -55,7 +55,7 @@
                 </button>
 
                 <span class="nav-label">User Management</span>
-                <button class="nav-item" onclick="switchPanel('faculty')">
+                <button class="nav-item" onclick="switchPanel('faculty', event)">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"></path>
                         <circle cx="9" cy="7" r="4"></circle>
@@ -64,14 +64,14 @@
                     </svg>
                     Faculty
                 </button>
-                <button class="nav-item" onclick="switchPanel('students')">
+                <button class="nav-item" onclick="switchPanel('students', event)">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"></path>
                         <circle cx="12" cy="7" r="4"></circle>
                     </svg>
                     Students
                 </button>
-                <button class="nav-item" onclick="switchPanel('enrollments')">
+                <button class="nav-item" onclick="switchPanel('enrollments', event)">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M16 4h2a2 2 0 012 2v14a2 2 0 01-2 2H6a2 2 0 01-2-2V6a2 2 0 012-2h2"></path>
                         <rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect>
@@ -80,20 +80,20 @@
                 </button>
 
                 <span class="nav-label">Operations</span>
-                <button class="nav-item" onclick="switchPanel('offerings')">
+                <button class="nav-item" onclick="switchPanel('offerings', event)">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
                     </svg>
                     Map Subjects
                 </button>
-                <button class="nav-item" onclick="switchPanel('pdf')">
+                <button class="nav-item" onclick="switchPanel('pdf', event)">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"></path>
                         <polyline points="14 2 14 8 20 8"></polyline>
                     </svg>
                     Upload PDF
                 </button>
-                <button class="nav-item" onclick="switchPanel('promote')">
+                <button class="nav-item" onclick="switchPanel('promote', event)">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <polyline points="17 1 21 5 17 9"></polyline>
                         <path d="M3 11V9a4 4 0 014-4h14"></path>
@@ -264,8 +264,18 @@
                     <h3>Create Faculty Profile</h3>
                     <form id="facultyForm">
                         <div class="form-group">
-                            <label>User ID (registered Faculty account)</label>
-                            <input type="number" id="facUserId" placeholder="e.g. 5" required>
+                            <label>Full Name</label>
+                            <input type="text" id="facName" placeholder="e.g. Dr. Jane Smith" required>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Email Address</label>
+                                <input type="email" id="facEmail" placeholder="jane.smith@college.edu" required>
+                            </div>
+                            <div class="form-group">
+                                <label>Password</label>
+                                <input type="password" id="facPassword" placeholder="••••••••" required>
+                            </div>
                         </div>
                         <div class="form-group">
                             <label>Department</label>
@@ -277,7 +287,7 @@
                             <label>Designation</label>
                             <input type="text" id="facDesignation" placeholder="e.g. Assistant Professor" required>
                         </div>
-                        <button type="submit" class="btn primary">Link Faculty Profile</button>
+                        <button type="submit" class="btn primary">Create Faculty Profile</button>
                     </form>
                     <div id="facAlert" class="alert hidden"></div>
                 </div>
@@ -547,7 +557,7 @@
 
         </main>
     </div>
-    <script src="/static/js/admin.js?v=4"></script>
+    <script src="/static/js/admin.js?v=6"></script>
 </body>
 
 </html>

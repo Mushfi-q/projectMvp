@@ -4,7 +4,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 from app.database import engine, Base
-from app.models import user, academic, assignment, attendance
+from app.models import user, academic, assignment, attendance, chat, reminder
 from app.routers import auth, chatbot, admin, faculty, student
 
 app = FastAPI()

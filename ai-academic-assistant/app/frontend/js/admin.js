@@ -1,3 +1,4 @@
+console.log("Admin JS v6 Loading...");
 const API_URL = "";
 
 // Auth Guard
@@ -14,8 +15,7 @@ const authHeaders = {
 
 // -----------------------------------------
 // Panel Switching
-// -----------------------------------------
-function switchPanel(panelId) {
+function switchPanel(panelId, event) {
     document.querySelectorAll('.panel').forEach(p => {
         p.classList.remove('active');
         p.classList.add('hidden');
@@ -29,7 +29,9 @@ function switchPanel(panelId) {
     }
 
     // Highlight the clicked nav item
-    event.currentTarget.classList.add('active');
+    if (event && event.currentTarget) {
+        event.currentTarget.classList.add('active');
+    }
 
     // Load departments for dropdown selectors
     if (panelId === 'batches' || panelId === 'faculty' || panelId === 'subjects') {
@@ -102,7 +104,6 @@ async function deleteItem(entityRoute, itemId, panelId) {
 // -----------------------------------------
 async function loadDepartmentsInto(selectId) {
     const sel = document.getElementById(selectId);
-    if (sel.options.length > 1) return; // already loaded
     try {
         const res = await fetch(`${API_URL}/auth/departments`);
         const data = await res.json();
@@ -208,12 +209,17 @@ document.getElementById('semForm').addEventListener('submit', async (e) => {
 // -----------------------------------------
 document.getElementById('facultyForm').addEventListener('submit', async (e) => {
     e.preventDefault();
+    console.log("Faculty form submit triggered");
+    alert("Triggering Faculty Creation...");
     const payload = {
-        user_id: parseInt(document.getElementById('facUserId').value),
+        name: document.getElementById('facName').value,
+        email: document.getElementById('facEmail').value,
+        password: document.getElementById('facPassword').value,
         department_id: parseInt(document.getElementById('facDeptId').value),
         designation: document.getElementById('facDesignation').value
     };
 
+    console.log("Submitting Faculty Payload:", payload);
     try {
         const res = await fetch(`${API_URL}/admin/faculty`, {
             method: 'POST',
@@ -221,6 +227,7 @@ document.getElementById('facultyForm').addEventListener('submit', async (e) => {
             body: JSON.stringify(payload)
         });
         const data = await res.json();
+        console.log("Faculty Creation Response:", data);
         if (res.ok) {
             showAlert('facAlert', `✓ ${data.data}`, 'success');
             document.getElementById('facultyForm').reset();
